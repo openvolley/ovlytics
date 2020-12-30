@@ -263,7 +263,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
     assert_that(is.string(label_setters_by))
     label_setters_by <- tolower(label_setters_by)
     label_setters_by <- match.arg(label_setters_by, c("id", "name"))
-    twrapf <- if (is.na(title_wrap)) function(z) z else function(z) strwrap(z, title_wrap)
+    twrapf <- if (is.na(title_wrap)) function(z) z else function(z) paste0(strwrap(z, title_wrap), collapse = "\n")
     if (label_setters_by == "name") {
         ## figure the player_id -> player_name mapping
         pnid <- na.omit(dplyr::select(ssd$raw_data$plays, .data$team, .data$player_id, .data$player_name))
@@ -353,7 +353,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
 #' @export
 ov_plot_sequence_distribution <- function(ssd, font_size = 11, title_wrap = NA) {
     attack_by_var <- ssd$attack_by_var
-    twrapf <- if (is.na(title_wrap)) function(z) z else function(z) strwrap(z, title_wrap)
+    twrapf <- if (is.na(title_wrap)) function(z) z else function(z) paste0(strwrap(z, title_wrap), collapse = "\n")
     ## conditional distributions
     cd_bandit <- dplyr::select(ssd$conditional_simulations, dplyr::contains("Bandit choice"), "team", "setter", "set_number", "score", "point_id", "setter_position", "ts_pass_evaluation_code", {{ attack_by_var }})
     cd_bandit <- ungroup(mutate(group_by(cd_bandit, .data$team, .data$setter), time = row_number()))
