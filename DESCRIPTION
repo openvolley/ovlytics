@@ -1,0 +1,29 @@
+Package: ovlytics
+Title: Functions and Algorithms for Volleyball Analytics
+Version: 0.0.7
+Authors@R: c(person("Ben", "Raymond", email = "ben@untan.gl", role = c("aut", "cre")),
+             person("Adrien", "Ickowicz", role = "aut"))
+Description: Analytical functions for volleyball analytics, to be used in conjunction with the datavolley and peranavolley packages.
+Imports:
+    assertthat,
+    datavolley,
+    dplyr (>= 0.8.5),
+    forcats,
+    ggplot2,
+    grid,
+    methods,
+    ovdata,
+    purrr,
+    patchwork,
+    rlang,
+    stringr,
+    tidyr
+Suggests:
+    shiny,
+    testthat
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.1
+Roxygen: list(markdown = TRUE)
+Remotes: openvolley/datavolley, openvolley/ovdata
