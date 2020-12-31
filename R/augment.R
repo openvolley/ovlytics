@@ -5,7 +5,7 @@
 #' - "receiving_team" adds the receiving team name
 #' - "touch_summaries" adds a number of columns named "ts_*" that summarize a team touch (e.g. columns "ts_pass_quality", "ts_pass_evaluation_code" give the pass quality and pass evaluation code of the reception or dig associated with a given team touch)
 #' - "followed" adds the columns "followed_timeout", "followed_technical_timeout", and "followed_sub"
-#' - "setters" adds the columns "home_setter_id", "visiting_setter_id" (the player IDs of the home and visiting setter on court), and "setter_id" and "setter_position" (the player ID and position of the setter from the team performing the current action)
+#' - "setters" adds the columns "home_setter_id", "visiting_setter_id" (the player IDs of the home and visiting setter on court), and "setter_id", "setter_position", and "setter_front_back" (the player ID and position of the setter from the team performing the current action)
 #' @param use_existing logical: if `TRUE` and all of the columns associated with a given `to_add` choice are already present in `x`, they won't be re-generated
 #'
 #' @return `x` with the extra columns added
@@ -67,7 +67,9 @@ ov_augment_plays <- function(x, to_add = c("receiving_team", "touch_summaries", 
                     setter_id = case_when(.data$team_id == .data$home_team_id ~ .data$home_setter_id,
                                           .data$team_id == .data$visiting_team_id ~ .data$visiting_setter_id),
                     setter_position = case_when(.data$team == .data$home_team ~ .data$home_setter_position,
-                                                .data$team == .data$visiting_team ~ .data$visiting_setter_position))
+                                                .data$team == .data$visiting_team ~ .data$visiting_setter_position),
+                    setter_front_back = case_when(.data$setter_position %in% c(1, 5, 6) ~ "back",
+                                                  .data$setter_position %in% c(2, 3, 4) ~ "front"))
     }
     x
 }

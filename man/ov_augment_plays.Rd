@@ -18,7 +18,7 @@ ov_augment_plays(
 \item "receiving_team" adds the receiving team name
 \item "touch_summaries" adds a number of columns named "ts_*" that summarize a team touch (e.g. columns "ts_pass_quality", "ts_pass_evaluation_code" give the pass quality and pass evaluation code of the reception or dig associated with a given team touch)
 \item "followed" adds the columns "followed_timeout", "followed_technical_timeout", and "followed_sub"
-\item "setters" adds the columns "home_setter_id", "visiting_setter_id" (the player IDs of the home and visiting setter on court), and "setter_id" and "setter_position" (the player ID and position of the setter from the team performing the current action)
+\item "setters" adds the columns "home_setter_id", "visiting_setter_id" (the player IDs of the home and visiting setter on court), and "setter_id", "setter_position", and "setter_front_back" (the player ID and position of the setter from the team performing the current action)
 }}
 
 \item{use_existing}{logical: if \code{TRUE} and all of the columns associated with a given \code{to_add} choice are already present in \code{x}, they won't be re-generated}

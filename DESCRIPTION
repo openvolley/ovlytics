@@ -1,6 +1,6 @@
 Package: ovlytics
 Title: Functions and Algorithms for Volleyball Analytics
-Version: 0.0.8
+Version: 0.0.9
 Authors@R: c(person("Ben", "Raymond", email = "ben@untan.gl", role = c("aut", "cre")),
              person("Adrien", "Ickowicz", role = "aut"))
 Description: Analytical functions for volleyball analytics, to be used in conjunction with the datavolley and peranavolley packages.
