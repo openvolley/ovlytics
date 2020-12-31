@@ -246,6 +246,25 @@ ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, font_size = 11) {
 }
 
 
+ssd_set_setter_labels <- function(ssd, label_setters_by = "id") {
+    assert_that(is.string(label_setters_by))
+    label_setters_by <- tolower(label_setters_by)
+    label_setters_by <- match.arg(label_setters_by, c("id", "name"))
+    if (label_setters_by == "name") {
+        ## figure the player_id -> player_name mapping
+        pnid <- na.omit(dplyr::select(ssd$raw_data$plays, .data$team, .data$player_id, .data$player_name))
+        pnid <- distinct(dplyr::filter(pnid, .data$player_id %in% c(unique(ssd$simulations$setter), unique(ssd$actual$setter))))
+        if (nrow(pnid) != nrow(distinct(dplyr::select(pnid, -"team")))) {
+            warning("cannot find unique player name for each player id, using ids as labels")
+        } else {
+            try(ssd$simulations <- dplyr::rename(dplyr::select(left_join(ssd$simulations, pnid, by = c("team", setter = "player_id")), -"setter"), setter = "player_name"))
+            try(ssd$actual <- dplyr::rename(dplyr::select(left_join(ssd$actual, pnid, by = c("team", setter = "player_id")), -"setter"), setter = "player_name"))
+            try(ssd$conditional_simulations <- dplyr::rename(dplyr::select(left_join(ssd$conditional_simulations, pnid, by = c("team", setter = "player_id")), -"setter"), setter = "player_name"))
+        }
+    }
+    ssd
+}
+
 #' Court plot of a real and simulated setter distribution
 #'
 #' @param ssd simulated setter distribution output as returned by [ov_simulate_setter_distribution()]
@@ -260,21 +279,8 @@ ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, font_size = 11) {
 #' ov_plot_distribution(setter)
 #' @export
 ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, title_wrap = NA) {
-    assert_that(is.string(label_setters_by))
-    label_setters_by <- tolower(label_setters_by)
-    label_setters_by <- match.arg(label_setters_by, c("id", "name"))
+    ssd <- ssd_set_setter_labels(ssd, label_setters_by = label_setters_by)
     twrapf <- if (is.na(title_wrap)) function(z) z else function(z) paste0(strwrap(z, title_wrap), collapse = "\n")
-    if (label_setters_by == "name") {
-        ## figure the player_id -> player_name mapping
-        pnid <- na.omit(dplyr::select(ssd$raw_data$plays, .data$team, .data$player_id, .data$player_name))
-        pnid <- distinct(dplyr::filter(pnid, .data$player_id %in% c(unique(ssd$simulations$setter), unique(ssd$actual$setter))))
-        if (nrow(pnid) != nrow(distinct(dplyr::select(pnid, -"team")))) {
-            warning("cannot find unique player name for each player id, using ids as labels")
-        } else {
-            ssd$simulations <- dplyr::rename(dplyr::select(left_join(ssd$simulations, pnid, by = c("team", setter = "player_id")), -"setter"), setter = "player_name")
-            ssd$actual <- dplyr::rename(dplyr::select(left_join(ssd$actual, pnid, by = c("team", setter = "player_id")), -"setter"), setter = "player_name")
-        }
-    }
     attack_by_var <- ssd$attack_by_var
     attack_zones_sim <- dplyr::summarize(group_by(ssd$simulations, .data$team, .data$setter, .data$setter_position, .data$attack_choice), n_attacks = n())
     attack_zones_sim <- ungroup(mutate(attack_zones_sim, rate = .data$n_attacks / sum(.data$n_attacks)))
@@ -341,6 +347,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
 #' Plot a simulated setter distribution sequence
 #'
 #' @param ssd simulated setter distribution output as returned by [ov_simulate_setter_distribution()]
+#' @param label_setters_by string: either "id" or "name"
 #' @param font_size numeric: font size
 #' @param title_wrap numeric: if non-`NA`, use [strwrap()] to break the title into lines of this width
 #'
@@ -351,8 +358,9 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
 #' ov_plot_sequence_distribution(ssd)
 #'
 #' @export
-ov_plot_sequence_distribution <- function(ssd, font_size = 11, title_wrap = NA) {
+ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_size = 11, title_wrap = NA) {
     attack_by_var <- ssd$attack_by_var
+    ssd <- ssd_set_setter_labels(ssd, label_setters_by = label_setters_by)
     twrapf <- if (is.na(title_wrap)) function(z) z else function(z) paste0(strwrap(z, title_wrap), collapse = "\n")
     ## conditional distributions
     cd_bandit <- dplyr::select(ssd$conditional_simulations, dplyr::contains("Bandit choice"), "team", "setter", "set_number", "score", "point_id", "setter_position", "ts_pass_evaluation_code", {{ attack_by_var }})
@@ -375,7 +383,7 @@ ov_plot_sequence_distribution <- function(ssd, font_size = 11, title_wrap = NA) 
             geom_point(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy & as.character(.data$attack_choice) == .data$least_likely_choice),
                        aes_string(x = "time + 0.5", y = "least_likely_choice"), col = "red", size = 1) +
             theme_bw(base_size = font_size) + scale_fill_continuous(na.value = NA) +
-            theme(legend.position = "none")  +
+            theme(legend.position = "none") + labs(x = "Game history", y = "Attack choice") +
             ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")")))
     })
     wrap_plots(c(gCondDist)) + plot_layout(guides = "collect")

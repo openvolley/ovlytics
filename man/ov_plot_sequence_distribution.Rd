@@ -4,10 +4,17 @@
 \alias{ov_plot_sequence_distribution}
 \title{Plot a simulated setter distribution sequence}
 \usage{
-ov_plot_sequence_distribution(ssd, font_size = 11, title_wrap = NA)
+ov_plot_sequence_distribution(
+  ssd,
+  label_setters_by = "id",
+  font_size = 11,
+  title_wrap = NA
+)
 }
 \arguments{
 \item{ssd}{simulated setter distribution output as returned by \code{\link[=ov_simulate_setter_distribution]{ov_simulate_setter_distribution()}}}
+
+\item{label_setters_by}{string: either "id" or "name"}
 
 \item{font_size}{numeric: font size}
 
