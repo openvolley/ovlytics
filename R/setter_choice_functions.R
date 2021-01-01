@@ -1,3 +1,9 @@
+team_name_to_abbrev <- function(x, upper = FALSE) {
+    ##gsub('\\b(\\pL)\\pL{1,}|.','\\U\\1', x, perl = TRUE) ## doesn't like non-ascii (unicode) chars
+    out <- vapply(stringr::str_split(x, "\\b"), function(z) paste0(stringr::str_trim(substr(z, 1, 1)), collapse = ""), FUN.VALUE = "", USE.NAMES = FALSE)
+    if (upper) toupper(out) else out
+}
+
 #' Simulate a Bayesian Bandit choice for a given set of probabilities and a number of points
 #'
 #' @param dvw string or datavolley: a datavolley object as returned by [datavolley::dv_read()] or a path to datavolley file
@@ -77,9 +83,9 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                 tableBB <- mutate(data_game, score = paste(.data$home_team_id, .data$home_team_score, "-", .data$visiting_team_score, .data$visiting_team_id))
             } else {
                 ## create a short team name automatically
-                tableBB <- mutate(data_game, score = paste(gsub('\\b(\\pL)\\pL{1,}|.','\\U\\1', .data$home_team, perl = TRUE), .data$home_team_score,
+                tableBB <- mutate(data_game, score = paste(team_name_to_abbrev(.data$home_team), .data$home_team_score,
                                                            "-",
-                                                           .data$visiting_team_score, gsub('\\b(\\pL)\\pL{1,}|.','\\U\\1',.data$visiting_team, perl = TRUE)))
+                                                           .data$visiting_team_score, team_name_to_abbrev(.data$visiting_team)))
             }
             tableBB <- left_join(dplyr::select(tableBB, "set_number", "point_id", "score", "setter_position", "ts_pass_evaluation_code", {{ attack_by_var }}, "evaluation_code"), probTable, by = c("setter_position", "ts_pass_evaluation_code"))
 
