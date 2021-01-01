@@ -382,7 +382,7 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
             geom_point(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy), aes_string(x = "time + 0.5", y = "choice_bandit"), col = "white", size = 1) +
             geom_point(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy & as.character(.data$attack_choice) == .data$least_likely_choice),
                        aes_string(x = "time + 0.5", y = "least_likely_choice"), col = "red", size = 1) +
-            theme_bw(base_size = font_size) + scale_fill_continuous(na.value = NA) +
+            theme_bw(base_size = font_size) + scale_fill_continuous(na.value = NA, limits = c(0, 1)) +
             theme(legend.position = "none") + labs(x = "Game history", y = "Attack choice") +
             ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")")))
     })
