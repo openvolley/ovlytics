@@ -13,10 +13,12 @@ team_name_to_abbrev <- function(x, upper = FALSE) {
 #' @param epsilon numeric: reward size
 #' @param filter_sim logical:
 #' @param attack_options string: either "use_data" or "use_history"
-#' @param history_table data.frame: (only if `attack_options` is "use_history") the `history_table` component of the object returned by [ov_create_history_table()]
+#' @param history_table data.frame: (only if `attack_options` is "use_history") the `prior_table` component of the object returned by [ov_create_history_table()]
 #' @param attack_by string: either "code" or "zone"
 #' @param exclude_attacks character: vector of attack codes to exclude
 #' @param shiny_progress numeric: an optional two-element vector. If not `NULL` or `NA`, [shiny::setProgress()] calls will be made during simulation with `value`s in this range
+#'
+#' @seealso [ov_create_history_table()]
 #'
 #' @examples
 #' dvw <- ovdata_example("190301_kats_beds")
@@ -43,7 +45,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
 
     sim <- actual <- rates <- NULL
 
-    if (is.null(history_table) && attack_options %eq% "use_history") stop("No history table specified")
+    if ((is.null(history_table) || !is.data.frame(history_table) || nrow(history_table) < 1) && attack_options %eq% "use_history") stop("History table is missing or empty")
 
     do_shiny_progress <- tryCatch(!is.null(shiny_progress) && length(shiny_progress) == 2 && !any(is.na(shiny_progress)) && requireNamespace("shiny", quietly = TRUE), error = function(e) FALSE)
     n_outer <- nrow(distinct(team_setter[, c("team", "setter_id")]))
@@ -298,12 +300,15 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
     attack_zones_actual <- ungroup(mutate(attack_zones_actual, rate = .data$n_attacks / sum(.data$n_attacks)))
     setter_team <- distinct(dplyr::select(attack_zones_actual, "team", "setter"))
     if (attack_by_var == "attack_code") {
-        attack_zones_actual <- left_join(attack_zones_actual, dplyr::select(ssd$raw_data$meta$attacks, "code", "X8", "type"), by = c("attack_code" = "code"))
-        attack_zones_actual <- mutate(cbind(attack_zones_actual, dv_index2xy(attack_zones_actual$X8)),
+        ## hmm, the meta$attacks data.frame can be a bit messy ... the attack location is either "X8" or "V8"
+        atk_loc_var <- if ("X8" %in% names(ssd$raw_data$meta$attacks)) "X8" else "V8"
+        if (!atk_loc_var %in% names(ssd$raw_data$meta$attacks)) stop("could not plot attack distribution, missing attack start location in meta$attacks table")
+        attack_zones_actual <- left_join(attack_zones_actual, dplyr::select(ssd$raw_data$meta$attacks, "code", {{ atk_loc_var }}, "type"), by = c("attack_code" = "code"))
+        attack_zones_actual <- mutate(cbind(attack_zones_actual, dv_index2xy(attack_zones_actual[[atk_loc_var]])),
                                       rotation = forcats::fct_relevel(as.factor(as.character(.data$setter_position)), c("4","3","2","5","6","1")))
 
-        attack_zones_sim <- left_join(attack_zones_sim, dplyr::select(ssd$raw_data$meta$attacks, "code", "X8", "type"), by = c("attack_choice" = "code"))
-        attack_zones_sim <- mutate(cbind(attack_zones_sim, dv_index2xy(attack_zones_sim$X8)),
+        attack_zones_sim <- left_join(attack_zones_sim, dplyr::select(ssd$raw_data$meta$attacks, "code", {{ atk_loc_var }}, "type"), by = c("attack_choice" = "code"))
+        attack_zones_sim <- mutate(cbind(attack_zones_sim, dv_index2xy(attack_zones_sim[[atk_loc_var]])),
                                    rotation = forcats::fct_relevel(as.factor(as.character(.data$setter_position)), c("4","3","2","5","6","1")))
 
         gActual <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
@@ -436,6 +441,9 @@ ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition
             stop("dvw is a character but does not appear to be a directory nor a vector of file names")
         }
         raw_data <- bind_rows(lapply(dvw, function(z) plays(dv_read(z))))
+    } else if (is.data.frame(dvw) && (inherits(dvw, "datavolleyplays") || all(c("home_team", "visiting_team", "skill", "evaluation_code", "home_setter_position", "visiting_setter_position") %in% names(dvw)))) {
+        ## use as-is
+        raw_data <- dvw
     } else if (is.list(dvw)) {
         if (inherits(dvw, "datavolley")) {
             ## single datavolley

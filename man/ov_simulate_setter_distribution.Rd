@@ -33,7 +33,7 @@ ov_simulate_setter_distribution(
 
 \item{attack_options}{string: either "use_data" or "use_history"}
 
-\item{history_table}{data.frame: (only if \code{attack_options} is "use_history") the \code{history_table} component of the object returned by \code{\link[=ov_create_history_table]{ov_create_history_table()}}}
+\item{history_table}{data.frame: (only if \code{attack_options} is "use_history") the \code{prior_table} component of the object returned by \code{\link[=ov_create_history_table]{ov_create_history_table()}}}
 
 \item{attack_by}{string: either "code" or "zone"}
 
@@ -50,4 +50,7 @@ system.time({
   ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception",
                                          n_sim = 100, attack_by = "zone")
 })
+}
+\seealso{
+\code{\link[=ov_create_history_table]{ov_create_history_table()}}
 }
