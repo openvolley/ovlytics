@@ -65,20 +65,25 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                           } else {
                               dplyr::group_by_at(data_game, c("setter_position", "ts_pass_evaluation_code", attack_by_var))
                           }
-            tbleChoice <- ungroup(dplyr::summarize(tbleChoice, KR = mean(.data$evaluation_code == "#"), n = n()))
+            tbleChoice <- ungroup(dplyr::summarize(tbleChoice, alpha = sum(.data$evaluation_code == "#"), beta = sum(.data$evaluation_code != "#"), n = n()))
 
             if (attack_options == "use_data") {
                 this <- tbleChoice
             } else if (attack_options == "use_history") {
                 this <- bind_rows(
-                    dplyr::select(mutate(dplyr::filter(history_table, .data$team == iTeam & .data$setter_id == iSetter), n_s = .data$KR * .data$n), -"KR", -"team", -"setter_id"),
-                    dplyr::select(mutate(tbleChoice, n_s = .data$KR * .data$n), -"KR"))
+                    #dplyr::select(mutate(dplyr::filter(history_table, .data$team == iTeam & .data$setter_id == iSetter), n_s = .data$KR * .data$n), -"KR", -"team", -"setter_id"),
+                    dplyr::select(dplyr::filter(history_table, .data$team == iTeam & .data$setter_id == iSetter), -"team", -"setter_id"),
+                    #dplyr::select(mutate(tbleChoice, n_s = .data$KR * .data$n), -"KR"))
+                    tbleChoice)
                 if (packageVersion("dplyr") >= "1.0.0") {
-                    this <- ungroup(dplyr::summarize(group_by(this, .data$setter_position, .data$ts_pass_evaluation_code, dplyr::across({{ attack_by_var }})), KR = sum(.data$n_s)/sum(.data$n), n = sum(.data$n)))
+                    this <- ungroup(dplyr::summarize(group_by(this, .data$setter_position, .data$ts_pass_evaluation_code, dplyr::across({{ attack_by_var }})), alpha = sum(.data$alpha), beta = sum(.data$beta), n = sum(.data$n)))
                 } else {
-                    this <- ungroup(dplyr::summarize(dplyr::group_by_at(this, c("setter_position", "ts_pass_evaluation_code", attack_by_var)), KR = sum(.data$n_s)/sum(.data$n), n = sum(.data$n)))
+                    this <- ungroup(dplyr::summarize(dplyr::group_by_at(this, c("setter_position", "ts_pass_evaluation_code", attack_by_var)), alpha = sum(.data$alpha), beta = sum(.data$beta), n = sum(.data$n)))
                 }
             }
+            # Define the kill rate
+            this <- dplyr::select(mutate(this, KR = .data$alpha / (.data$alpha + .data$beta)), -"alpha", -"beta")
+            
             probTable <- pivot_wider(dplyr::select(this, -"n"), names_from = {{ attack_by_var }}, values_from = .data$KR)
             if (FALSE) {
                 ## use team_id in plot
@@ -174,6 +179,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
 
             sim <- bind_rows(sim, res)
             actual <- bind_rows(actual, tableBB)
+            tbleChoice <- dplyr::select(mutate(tbleChoice, KR = .data$alpha / (.data$alpha + .data$beta)), -"alpha", -"beta")
             rates <- bind_rows(rates, tbleChoice)
         }
     }
@@ -468,6 +474,8 @@ ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition
                    } else {
                        dplyr::group_by_at(data_game, c("team", "setter_id", "setter_position", "ts_pass_evaluation_code", attack_by_var))
                    }
-    prior_table <- ungroup(dplyr::summarize(prior_table, KR = mean(.data$evaluation_code == "#"), n = n()))
+    prior_table <- ungroup(dplyr::summarize(prior_table, alpha = sum(.data$evaluation_code == "#"), beta = sum(.data$evaluation_code != "#"), n = n()))
+    # Normalize priors
+    prior_table <- mutate(prior_table, alpha = .data$alpha / .data$n, beta = .data$beta / .data$n)
     list(prior_table = prior_table)
 }
