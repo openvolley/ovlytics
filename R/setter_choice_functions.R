@@ -65,7 +65,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                           } else {
                               dplyr::group_by_at(data_game, c("setter_position", "ts_pass_evaluation_code", attack_by_var))
                           }
-            tbleChoice <- ungroup(dplyr::summarize(tbleChoice, alpha = sum(.data$evaluation_code == "#"), beta = sum(.data$evaluation_code != "#"), n = n()))
+            tbleChoice <- ungroup(dplyr::summarize(tbleChoice, alpha = sum(.data$evaluation %eq% "Winning attack"), beta = sum(!(.data$evaluation %eq% "Winning attack")), n = n()))
 
             if (attack_options == "use_data") {
                 this <- tbleChoice
@@ -94,7 +94,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                                                            "-",
                                                            .data$visiting_team_score, team_name_to_abbrev(.data$visiting_team)))
             }
-            tableBB <- left_join(dplyr::select(tableBB, "set_number", "point_id", "score", "setter_position", "ts_pass_evaluation_code", {{ attack_by_var }}, "evaluation_code"), probTable, by = c("setter_position", "ts_pass_evaluation_code"))
+            tableBB <- left_join(dplyr::select(tableBB, "set_number", "point_id", "score", "setter_position", "ts_pass_evaluation_code", {{ attack_by_var }}, "evaluation"), probTable, by = c("setter_position", "ts_pass_evaluation_code"))
 
             choice <- matrix(seq_len(ncol(tableBB) - 7), ncol = (ncol(tableBB) - 7), nrow = nrow(tableBB), byrow = TRUE)
             choice[which(is.na(as.matrix(tableBB[, seq(8, ncol(tableBB), by = 1)])))] <- NA
@@ -146,7 +146,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
             ## Bandit choice condiional on setter choices and attack outcomes
             res_cond <- matrix(NA_real_, nrow = duration, ncol = nArms)
             ObservedChoice <- match(tableBB[[attack_by_var]], colnames(probs))
-            ObservedSuccess <- as.numeric(tableBB$evaluation_code == "#")
+            ObservedSuccess <- as.numeric(tableBB$evaluation == "Winning attack")
             postPar <- matrix(c(priors$par1, priors$par2), ncol = nArms, nrow = 2, byrow = TRUE)
             postParInit <- matrix(c(priors$par1, priors$par2), ncol = nArms, nrow = 2, byrow = TRUE)
             EKR <- matrix(NA_real_, nrow = duration, ncol = nArms)
@@ -222,7 +222,7 @@ ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, font_size = 11) {
                                          trajqi05 = quantile(.data$traj, 0.05), trajqi95 = quantile(.data$traj, 0.95),
                                          trajqim = mean(.data$traj)))
     tbC <- mutate(group_by(ssd$actual, .data$team, .data$setter),
-                  pts = cumsum(.data$evaluation_code == "#"), time = row_number())
+                  pts = cumsum(.data$evaluation == "Winning attack"), time = row_number())
 
     g <- ggplot(tbC) +
         geom_line(data = bbtrajqi, aes_string(x = "time", y = "trajqim", group = "setter"), col = "orange") +
@@ -233,8 +233,12 @@ ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, font_size = 11) {
         labs(x = "Game history", y = "Cumulative points scored") + facet_wrap("team", scales = "free")
 
     if (overlay_set_number) {
-        data_label <- ungroup(dplyr::select(dplyr::filter(group_by(ssd$actual, .data$set_number), .data$point_id == max(.data$point_id)),
-                                            "set_number", "score"))
+        data_label <- select(mutate(ssd$raw_data$meta$result, 
+                             set_number = row_number(), 
+                             home_team_abbrv = team_name_to_abbrev(datavolley::home_team(ssd$raw_data)),
+                             visiting_team_abbrv = team_name_to_abbrev(datavolley::visiting_team(ssd$raw_data)),
+                             score = paste(home_team_abbrv,score,visiting_team_abbrv)), set_number, score)
+        
         data_label <- left_join(data_label, group_by(ssd$actual, .data$team, .data$setter, .data$set_number) %>%
                                             dplyr::summarize(time = n()) %>%
                                             group_by(.data$team, .data$setter) %>% mutate(max_time = cumsum(.data$time)) %>% ungroup(),
@@ -474,7 +478,7 @@ ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition
                    } else {
                        dplyr::group_by_at(data_game, c("team", "setter_id", "setter_position", "ts_pass_evaluation_code", attack_by_var))
                    }
-    prior_table <- ungroup(dplyr::summarize(prior_table, alpha = sum(.data$evaluation_code == "#"), beta = sum(.data$evaluation_code != "#"), n = n()))
+    prior_table <- ungroup(dplyr::summarize(prior_table, alpha = sum(.data$evaluation %eq% "Winning attack"), beta = sum(!(.data$evaluation %eq% "Winning attack")), n = n()))
     # Normalize priors
     prior_table <- mutate(prior_table, alpha = .data$alpha / .data$n, beta = .data$beta / .data$n)
     list(prior_table = prior_table)
