@@ -377,20 +377,21 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
 #' @param label_setters_by string: either "id" or "name"
 #' @param font_size numeric: font size
 #' @param title_wrap numeric: if non-`NA`, use [strwrap()] to break the title into lines of this width
+#' @param split_set boolean: separating the sequence of distribution per set. Default to "FALSE"
 #'
 #' @examples
 #' dvw <- ovdata_example("190301_kats_beds")
-#' ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = c("Reception", "Transition"),
-#'                                        n_sim = 100, attack_by = "code")
+#' ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = c("Reception"),
+#'                                        n_sim = 100, attack_by = "zone")
 #' ov_plot_sequence_distribution(ssd)
 #'
 #' @export
-ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_size = 11, title_wrap = NA) {
+ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_size = 11, title_wrap = NA, split_set = FALSE) {
     attack_by_var <- ssd$attack_by_var
     ssd <- ssd_set_setter_labels(ssd, label_setters_by = label_setters_by)
     twrapf <- if (is.na(title_wrap)) function(z) z else function(z) paste0(strwrap(z, title_wrap), collapse = "\n")
     ## conditional distributions
-    cd_bandit <- dplyr::select(ssd$conditional_simulations, dplyr::contains("Bandit choice"), "team", "setter", "set_number", "score", "point_id", "setter_position", "ts_pass_evaluation_code", {{ attack_by_var }})
+    cd_bandit <- dplyr::select(ssd$conditional_simulations, dplyr::contains("Bandit choice"), "team", "setter", "set_number", "score", "point_id", "setter_position", "ts_pass_quality", {{ attack_by_var }})
     cd_bandit <- ungroup(mutate(group_by(cd_bandit, .data$team, .data$setter), time = row_number()))
     cd_bandit <- pivot_longer(cd_bandit, cols = dplyr::contains("Bandit choice"), names_to = "attack_choice_b", values_to = "Probability")
     cd_bandit <- mutate(cd_bandit, attack_choice_b = stringr::str_remove(.data$attack_choice_b, "Bandit choice "))
@@ -398,12 +399,12 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
     cd_setter <- ssd$conditional_simulations
     cd_setter$attack_choice <- as.factor(cd_setter[[attack_by_var]])
     cd_setter <- mutate(group_by(cd_setter, .data$team, .data$setter), time = row_number())
-    cd_bandit <- ungroup(mutate(group_by(cd_bandit, .data$team, .data$setter, .data$time),
+    cd_bandit <- ungroup(mutate(group_by(cd_bandit, .data$team, .data$setter, .data$time, .data$point_id),
                                 choice_bandit = case_when(.data$Probability == max(.data$Probability, na.rm=TRUE) ~ .data$attack_choice_b),
                                 least_likely_choice = case_when(.data$Probability == min(.data$Probability, na.rm=TRUE) & .data$Probability < 1 ~ attack_choice_b)))
     setter_team <- distinct(dplyr::select(cd_setter, "team", "setter"))
     gCondDist <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
-        ggplot(data = dplyr::filter(cd_setter, .data$team == xx, .data$setter == yy), aes_string(x = "time", y = "attack_choice")) +
+        g <- ggplot(data = dplyr::filter(cd_setter, .data$team == xx, .data$setter == yy), aes_string(x = "time", y = "attack_choice")) +
             geom_tile(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy), aes_string(x = "time + 0.5", y = "attack_choice_b", fill = "Probability"), alpha = 0.75) +
             geom_step(group = 1) +
             geom_point(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy), aes_string(x = "time + 0.5", y = "choice_bandit"), col = "white", size = 1) +
@@ -411,7 +412,10 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
                        aes_string(x = "time + 0.5", y = "least_likely_choice"), col = "red", size = 1) +
             theme_bw(base_size = font_size) + scale_fill_continuous(na.value = NA, limits = c(0, 1)) +
             theme(legend.position = "none") + labs(x = "Game history", y = "Attack choice") +
-            ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")")))
+            ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")"))) 
+        
+            if(split_set) g <- g + facet_wrap(~set_number, scales = "free_x")
+            g
     })
     wrap_plots(c(gCondDist)) + plot_layout(guides = "collect")
 }

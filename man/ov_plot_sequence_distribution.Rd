@@ -8,7 +8,8 @@ ov_plot_sequence_distribution(
   ssd,
   label_setters_by = "id",
   font_size = 11,
-  title_wrap = NA
+  title_wrap = NA,
+  split_set = FALSE
 )
 }
 \arguments{
@@ -25,8 +26,8 @@ Plot a simulated setter distribution sequence
 }
 \examples{
 dvw <- ovdata_example("190301_kats_beds")
-ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = c("Reception", "Transition"),
-                                       n_sim = 100, attack_by = "code")
+ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = c("Reception"),
+                                       n_sim = 100, attack_by = "zone")
 ov_plot_sequence_distribution(ssd)
 
 }
