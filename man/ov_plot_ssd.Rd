@@ -4,12 +4,19 @@
 \alias{ov_plot_ssd}
 \title{Plot a simulated setter distribution}
 \usage{
-ov_plot_ssd(ssd, overlay_set_number = FALSE, font_size = 11)
+ov_plot_ssd(
+  ssd,
+  overlay_set_number = FALSE,
+  label_setters_by = "id",
+  font_size = 11
+)
 }
 \arguments{
 \item{ssd}{simulated setter distribution output as returned by \code{\link[=ov_simulate_setter_distribution]{ov_simulate_setter_distribution()}}}
 
 \item{overlay_set_number}{boolean: if \code{TRUE}, overlay set number and score in the plot}
+
+\item{label_setters_by}{string: either "id" or "name"}
 
 \item{font_size}{numeric: font size}
 }

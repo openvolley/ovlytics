@@ -20,6 +20,8 @@ ov_plot_sequence_distribution(
 \item{font_size}{numeric: font size}
 
 \item{title_wrap}{numeric: if non-\code{NA}, use \code{\link[=strwrap]{strwrap()}} to break the title into lines of this width}
+
+\item{split_set}{boolean: if \code{TRUE}, separate the distribution sequence by set}
 }
 \description{
 Plot a simulated setter distribution sequence

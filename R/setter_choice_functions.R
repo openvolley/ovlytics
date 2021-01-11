@@ -110,7 +110,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
             res_ts_pass_quality <- rep(NA_character_, resn)
             res_setter_position <- rep(NA_integer_, resn)
             res_point_id <- rep(NA_integer_, resn)
-            
+
             nArms <- ncol(probs)
 
             if (nrow(probs) < duration) probs <- probs[rep(1, duration), ]
@@ -210,6 +210,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
 #'
 #' @param ssd simulated setter distribution output as returned by [ov_simulate_setter_distribution()]
 #' @param overlay_set_number boolean: if `TRUE`, overlay set number and score in the plot
+#' @param label_setters_by string: either "id" or "name"
 #' @param font_size numeric: font size
 #'
 #' @examples
@@ -218,14 +219,15 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
 #'                                           n_sim = 150, attack_by = "zone")
 #' ov_plot_ssd(setter, overlay_set_number = TRUE)
 #' @export
-ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, font_size = 11) {
+ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, label_setters_by = "id", font_size = 11) {
     assert_that(is.flag(overlay_set_number), !is.na(overlay_set_number))
+    ssd <- ssd_set_setter_labels(ssd, label_setters_by = label_setters_by)
     bbtrajqi <- mutate(group_by(ssd$simulations, .data$sim_num, .data$team, .data$setter),
                        traj = cumsum(.data$reward))
     bbtrajqi <- ungroup(dplyr::summarize(group_by(bbtrajqi, .data$time,.data$point_id,  .data$team, .data$setter),
                                          trajqi05 = quantile(.data$traj, 0.05), trajqi95 = quantile(.data$traj, 0.95),
                                          trajqim = mean(.data$traj)))
-    
+
     tbC <- mutate(group_by(ssd$actual, .data$team, .data$setter),
                   pts = cumsum(.data$evaluation == "Winning attack"), time = row_number())
 
@@ -236,25 +238,21 @@ ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, font_size = 11) {
         labs(x = "Point ID", y = "Cumulative points scored") + facet_wrap("team", scales = "free")
 
     if (overlay_set_number) {
-        data_label <- select(mutate(ssd$raw_data$meta$result, 
-                             set_number = row_number(), 
-                             home_team_abbrv = team_name_to_abbrev(datavolley::home_team(ssd$raw_data)),
-                             visiting_team_abbrv = team_name_to_abbrev(datavolley::visiting_team(ssd$raw_data)),
-                             score = paste(home_team_abbrv,score,visiting_team_abbrv)), set_number, score)
-        
+        data_label <- dplyr::select(mutate(ssd$raw_data$meta$result, set_number = row_number(),
+                                           home_team_abbrv = team_name_to_abbrev(datavolley::home_team(ssd$raw_data)),
+                                           visiting_team_abbrv = team_name_to_abbrev(datavolley::visiting_team(ssd$raw_data)),
+                                           score = paste(.data$home_team_abbrv, .data$score, .data$visiting_team_abbrv)), "set_number", "score")
+
         data_label <- left_join(data_label, group_by(ssd$actual, .data$team, .data$set_number) %>%
                                     dplyr::summarize(x_label = max(.data$point_id)/2 + min(.data$point_id)/2) %>% ungroup(),
                                 by = "set_number") %>%
             left_join(ungroup(group_by(tbC, .data$team) %>% dplyr::summarize(maxPts = max(.data$pts))), by = c("team")) %>%
             left_join(ungroup(group_by(bbtrajqi, .data$team) %>% dplyr::summarize(maxPts_sim = max(.data$trajqi95))), by = c("team"))
-        
-        data_sets <- group_by(ssd$actual, .data$team, .data$set_number) %>% 
-            dplyr::summarize(x_line = max(point_id))
-        
-        g <- g + geom_vline(data = data_sets,
-                            aes_string(xintercept = "x_line"), col = "grey") +
-            geom_label(data = data_label, 
-                       aes_string(x = "x_label", y = "max(maxPts, maxPts_sim)+2", label = "score"), size = font_size/11*9*0.35278)
+
+        data_sets <- group_by(ssd$actual, .data$team, .data$set_number) %>% dplyr::summarize(x_line = max(.data$point_id))
+
+        g <- g + geom_vline(data = data_sets, aes_string(xintercept = "x_line"), col = "grey") +
+            geom_label(data = data_label, aes_string(x = "x_label", y = "max(maxPts, maxPts_sim)+2", label = "score"), size = font_size/11*9*0.35278)
     }
 
     if (!is.null(ssd$filtered_simulations)) {
@@ -377,7 +375,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
 #' @param label_setters_by string: either "id" or "name"
 #' @param font_size numeric: font size
 #' @param title_wrap numeric: if non-`NA`, use [strwrap()] to break the title into lines of this width
-#' @param split_set boolean: separating the sequence of distribution per set. Default to "FALSE"
+#' @param split_set boolean: if `TRUE`, separate the distribution sequence by set
 #'
 #' @examples
 #' dvw <- ovdata_example("190301_kats_beds")
@@ -413,7 +411,7 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
             theme_bw(base_size = font_size) + scale_fill_continuous(na.value = NA, limits = c(0, 1)) +
             theme(legend.position = "none") + labs(x = "Game history", y = "Attack choice") +
             ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")"))) 
-        
+
             if(split_set) g <- g + facet_wrap(~set_number, scales = "free_x")
             g
     })
@@ -432,10 +430,12 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
 #'
 #' @examples
 #' ## use this file to create the priors
-#' hist_dvw <- ovdata_example("PM06")
+#' hist_dvw <- ovdata_example("190301_kats_beds")
 #' history_t <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone")
 #'
-#' ## use it on this file
+#' ## use it on another file (here, the same file for demo purposes)
+#' ## usually the history would be from a reference set of previous matches
+#'
 #' dvw <- ovdata_example("190301_kats_beds")
 #' setter <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception", n_sim = 500,
 #'                                   attack_by = "zone", attack_options = "use_history",
@@ -489,7 +489,7 @@ ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition
                        dplyr::group_by_at(data_game, c("team", "setter_id", "setter_position", "ts_pass_quality", attack_by_var))
                    }
     prior_table <- ungroup(dplyr::summarize(prior_table, alpha = sum(.data$evaluation %eq% "Winning attack"), beta = sum(!(.data$evaluation %eq% "Winning attack")), n = n()))
-    # Normalize priors
+    ## Normalize priors
     prior_table <- drop_na(mutate(prior_table, alpha = .data$alpha / .data$n, beta = .data$beta / .data$n))
     list(prior_table = prior_table)
 }
