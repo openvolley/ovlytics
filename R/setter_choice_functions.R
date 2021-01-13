@@ -483,13 +483,108 @@ ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition
                                                                .data$team == .data$visiting_team ~ .data$visiting_setter_position))
     data_game <- dplyr::filter(data_game, .data$skill == "Attack" & !.data$attack_code %in% exclude_attacks & tolower(.data$phase) %in% tolower(play_phase))
 
+    # prior_table <- if (packageVersion("dplyr") >= "1.0.0") {
+    #                    group_by(data_game, .data$team, .data$setter_id, .data$setter_position, .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
+    #                } else {
+    #                    dplyr::group_by_at(data_game, c("team", "setter_id", "setter_position", "ts_pass_quality", attack_by_var))
+    #                }
+    
     prior_table <- if (packageVersion("dplyr") >= "1.0.0") {
-                       group_by(data_game, .data$team, .data$setter_id, .data$setter_position, .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
-                   } else {
-                       dplyr::group_by_at(data_game, c("team", "setter_id", "setter_position", "ts_pass_quality", attack_by_var))
-                   }
+        group_by(data_game,.data$match_id, .data$team, .data$setter_id, .data$setter_position, .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
+    } else {
+        dplyr::group_by_at(data_game, c("match_id","team", "setter_id", "setter_position", "ts_pass_quality", attack_by_var))
+    }
+    
     prior_table <- ungroup(dplyr::summarize(prior_table, alpha = sum(.data$evaluation %eq% "Winning attack"), beta = sum(!(.data$evaluation %eq% "Winning attack")), n = n()))
+    
+    prior_table <- if (packageVersion("dplyr") >= "1.0.0") {
+        group_by(prior_table,.data$team, .data$setter_id, .data$setter_position, .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
+    } else {
+        dplyr::group_by_at(prior_table, c("team", "setter_id", "setter_position", "ts_pass_quality", attack_by_var))
+    }
+    
+    prior_table <- ungroup(dplyr::summarize(prior_table, alpha = sum(.data$alpha), beta = sum(.data$beta), n = sum(n), n_matches = n()))
+    
     ## Normalize priors
-    prior_table <- drop_na(mutate(prior_table, alpha = .data$alpha / .data$n, beta = .data$beta / .data$n))
+    prior_table <- drop_na(mutate(prior_table, alpha = .data$alpha / .data$n * .data$n_matches, beta = .data$beta / .data$n* .data$n_matches))
     list(prior_table = prior_table)
+}
+
+#' Plot the prior table 
+#' 
+#' @param history_table data.frame: the `prior_table` component of the object returned by [ov_create_history_table()]
+#' 
+#' @examples 
+#' hist_dvw <- ovdata_example("190301_kats_beds")
+#' history_t <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone")
+#' team = history_t$prior_table$team[1]
+#' setter_id = history_t$prior_table$setter_id[1]
+#' ov_plot_history_table(history_t$prior_table, team, setter_id)
+#' @export
+ov_plot_history_table <- function(history_table, team, setter_id){
+    if ((is.null(history_table) || !is.data.frame(history_table) || nrow(history_table) < 1)) stop("History table is missing or empty")
+    
+    df = dplyr::tibble(thetaBounds = c(0,1)) 
+    history_table <- history_table %>% mutate(setter_position = as.factor(setter_position), start_zone = as.factor(start_zone))
+    
+    ht <- history_table %>% dplyr::filter(.data$team %eq% team, .data$setter_id %eq% setter_id) %>%
+        group_by(setter_position, start_zone) %>%
+        nest() %>%
+        mutate(plot = purrr::map(data, ~  ggplot(df, aes(x=thetaBounds)) + xlab("") + ylab("")+ylim(c(0,6)) +
+                                     apply(.x, 1, function(y) geom_area(aes(fill = y['ts_pass_quality']), stat = "function", fun = dbeta, alpha = 0.75, 
+                                               args = list(shape1 = as.numeric(y['alpha']), shape2 = as.numeric(y['beta'])))) + theme_bw(base_size = 11)  + theme(legend.position = 'none')
+        )) 
+        
+    all_combs = 
+        history_table %>% 
+        mutate(setter_position = as.factor(setter_position), start_zone = as.factor(start_zone)) %>% 
+        select(setter_position, start_zone) %>% distinct() %>%
+        complete(setter_position, start_zone)
+    
+    ht <-full_join(ht, all_combs) %>% arrange(setter_position, start_zone) 
+
+    ht <- ht %>% mutate(plot = ifelse(plot == "NULL", list(ggplot() + theme_void()), plot))
+    
+    labels = pull(mutate(unite(ht, label, setter_position, start_zone, remove = FALSE, sep = " "), 
+                    label = case_when(.data$setter_position == ht$setter_position[1] | .data$start_zone == ht$start_zone[1] ~ label,
+                                          TRUE ~ "")), label)
+    
+    cowplot::plot_grid(plotlist = ht$plot, labels = labels, ncol = nlevels(ht$start_zone),  label_x = -0.04, label_y = 1.01)
+    
+    }
+
+#' Print the prior table 
+#' 
+#' @param history_table data.frame: the `prior_table` component of the object returned by [ov_create_history_table()]
+#' 
+#' @examples 
+#' hist_dvw <- ovdata_example("190301_kats_beds")
+#' history_t <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone")
+#' team = history_t$prior_table$team[1]
+#' setter_id = history_t$prior_table$setter_id[1]
+#' ov_print_history_table(history_t$prior_table, team, setter_id)
+#' @export
+ov_print_history_table <- function(history_table, team, setter_id){
+    
+    team_select = team
+    setter_select = setter_id
+    my_pal <- scales::col_numeric(
+        paletteer::paletteer_d(
+            palette = "ggsci::red_material"
+        ) %>% as.character(),
+        domain = NULL
+    )
+    if ((is.null(history_table) || !is.data.frame(history_table) || nrow(history_table) < 1)) stop("History table is missing or empty")
+    
+    history_table <- history_table %>% mutate(setter_position = as.factor(setter_position), start_zone = factor(start_zone, levels = 1:9), 
+                                              ts_pass_quality = factor(ts_pass_quality, levels = c("Perfect", "Good", "OK", "Poor")), kr = round(.data$alpha / (.data$alpha +.data$beta),2))
+    ht <-select(dplyr::filter(history_table, .data$team %eq% team_select, .data$setter_id %eq% setter_select), setter_position, ts_pass_quality, kr, start_zone)
+    gt::gt(group_by(arrange(pivot_wider(ht, names_from = start_zone, values_from = kr), .data$setter_position, .data$ts_pass_quality), .data$setter_position), 
+           rowname_col = "ts_pass_quality")  %>% 
+        gt::fmt_missing(columns = 1:7,missing_text = "") %>% 
+        gt::data_color(
+            columns = 1:7,
+            colors = my_pal
+        )
+    
 }
