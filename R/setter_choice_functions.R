@@ -547,7 +547,8 @@ ov_plot_history_table <- function(history_table, team, setter_id){
     
     df = dplyr::tibble(thetaBounds = c(0,1)) 
     ht_tmp <- mutate(history_table$prior_table, 
-                     across(matches("start_zone", "attack_code"), factor), 
+                     across(matches("start_zone"), factor), 
+                     across(matches("attack_code"), factor), 
                      across(matches("setter_position"), factor),
                      across(matches("ts_pass_quality"), factor, levels = c("Perfect", "Good", "OK", "Poor")))
     
@@ -563,7 +564,7 @@ ov_plot_history_table <- function(history_table, team, setter_id){
     all_combs = tidyr::complete(distinct(
         dplyr::select(ht_tmp, .data$setter_position, matches("start_zone"), matches("attack_code"))), setter_position, .data[[{{ attack_by_var }}]])
     
-    ht <-arrange(full_join(ht, all_combs), setter_position, {{ attack_by_var }}) 
+    ht <-arrange(full_join(ht, all_combs), setter_position, across({{ attack_by_var }})) 
 
     ht <-mutate(ht, plot = ifelse(plot == "NULL", list(ggplot() + theme_void()), plot))
     
@@ -590,21 +591,36 @@ ov_print_history_table <- function(history_table, team, setter_id){
     setter_select = setter_id
     my_pal <- scales::col_numeric(
         paletteer::paletteer_d(
-            palette = "ggsci::red_material"
+            palette = "ggsci::orange_material"
         ) %>% as.character(),
-        domain = NULL
+        domain = NULL,
+        na.color = "white"
     )
-    if ((is.null(history_table) || !is.data.frame(history_table) || nrow(history_table) < 1)) stop("History table is missing or empty")
+    if ((is.null(history_table$prior_table) || !is.data.frame(history_table$prior_table) || nrow(history_table$prior_table) < 1)) stop("History table is missing or empty")
     
-    history_table <- history_table %>% mutate(setter_position = as.factor(setter_position), start_zone = factor(start_zone, levels = 1:9), 
-                                              ts_pass_quality = factor(ts_pass_quality, levels = c("Perfect", "Good", "OK", "Poor")), kr = round(.data$alpha / (.data$alpha +.data$beta),2))
-    ht <-select(dplyr::filter(history_table, .data$team %eq% team_select, .data$setter_id %eq% setter_select), setter_position, ts_pass_quality, kr, start_zone)
-    gt::gt(group_by(arrange(pivot_wider(ht, names_from = start_zone, values_from = kr), .data$setter_position, .data$ts_pass_quality), .data$setter_position), 
+    
+    attack_by_var <- history_table$attack_by_var
+    
+    ht_tmp <- mutate(history_table$prior_table, 
+                     across(matches("start_zone"), factor), 
+                     across(matches("attack_code"), factor), 
+                     across(matches("setter_position"), factor),
+                     across(matches("ts_pass_quality"), factor, levels = c("Perfect", "Good", "OK", "Poor")), 
+                     kr = round(.data$alpha / (.data$alpha +.data$beta),2))
+    
+    ht <-select(dplyr::filter(ht_tmp, .data$team %eq% team_select, .data$setter_id %eq% setter_select), .data$setter_position, .data$ts_pass_quality, .data$kr, matches("start_zone"), matches("attack_code"))
+    
+    ht <- group_by(arrange(pivot_wider(ht, names_from = {{ attack_by_var }}, values_from = kr), .data$setter_position, .data$ts_pass_quality), .data$setter_position)
+    
+    gt::gt(ht,
            rowname_col = "ts_pass_quality")  %>% 
-        gt::fmt_missing(columns = 1:7,missing_text = "") %>% 
+        gt::fmt_missing(columns = 1:ncol(ht),
+                        missing_text = ".") %>% 
         gt::data_color(
-            columns = 1:7,
+            columns = 1:ncol(ht),
             colors = my_pal
-        )
+        ) %>%
+        gt::cols_align(align = "center",
+                   columns = 1:ncol(ht)) 
     
 }
