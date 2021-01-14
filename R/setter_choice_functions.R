@@ -1,3 +1,5 @@
+expand_rle <- function(lens) unlist(lapply(seq_along(lens), function(z) rep(z, lens[z])))
+
 team_name_to_abbrev <- function(x, upper = FALSE) {
     ##gsub('\\b(\\pL)\\pL{1,}|.','\\U\\1', x, perl = TRUE) ## doesn't like non-ascii (unicode) chars
     out <- vapply(stringr::str_split(x, "\\b"), function(z) paste0(stringr::str_trim(substr(z, 1, 1)), collapse = ""), FUN.VALUE = "", USE.NAMES = FALSE)
@@ -40,7 +42,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
     raw_data <- if (is.character(dvw)) dv_read(dvw) else dvw
 
     data <- ov_augment_plays(plays(raw_data), to_add = c("touch_summaries", "setters"))
-    team_setter <- tidyr::drop_na(distinct(dplyr::select(dplyr::filter(data, .data$skill == "Attack" & !.data$attack_code %in% exclude_attacks & tolower(.data$phase) %in% tolower(play_phase)), "team", "setter_id")))
+    team_setter <- tidyr::drop_na(dplyr::distinct(dplyr::select(dplyr::filter(data, .data$skill == "Attack" & !.data$attack_code %in% exclude_attacks & tolower(.data$phase) %in% tolower(play_phase)), "team", "setter_id")))
     data <- dplyr::filter(data, .data$skill == "Attack" & !.data$attack_code %in% exclude_attacks & tolower(.data$phase) %in% tolower(play_phase))
 
     sim <- actual <- rates <- NULL
@@ -48,7 +50,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
     if ((is.null(history_table) || !is.data.frame(history_table) || nrow(history_table) < 1) && attack_options %eq% "use_history") stop("History table is missing or empty")
 
     do_shiny_progress <- tryCatch(!is.null(shiny_progress) && length(shiny_progress) == 2 && !any(is.na(shiny_progress)) && requireNamespace("shiny", quietly = TRUE), error = function(e) FALSE)
-    n_outer <- nrow(distinct(team_setter[, c("team", "setter_id")]))
+    n_outer <- nrow(dplyr::distinct(team_setter[, c("team", "setter_id")]))
     spcount <- 0L
     cond <- NULL
     for (iTeam in unique(team_setter$team)) {
@@ -61,11 +63,11 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
             if (nrow(data_game) < 20) next
 
             tbleChoice <- if (packageVersion("dplyr") >= "1.0.0") {
-                              group_by(data_game, .data$setter_position, .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
+                              dplyr::group_by(data_game, .data$setter_position, .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
                           } else {
                               dplyr::group_by_at(data_game, c("setter_position", "ts_pass_quality", attack_by_var))
                           }
-            tbleChoice <- ungroup(dplyr::summarize(tbleChoice, alpha = sum(.data$evaluation %eq% "Winning attack"), beta = sum(!(.data$evaluation %eq% "Winning attack")), n = n()))
+            tbleChoice <- dplyr::ungroup(dplyr::summarize(tbleChoice, alpha = sum(.data$evaluation %eq% "Winning attack"), beta = sum(!(.data$evaluation %eq% "Winning attack")), n = dplyr::n()))
 
             if (attack_options == "use_data") {
                 this <- tbleChoice
@@ -82,19 +84,19 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                 }
             }
             # Define the kill rate
-            this <- dplyr::select(mutate(this, KR = .data$alpha / (.data$alpha + .data$beta)), -"alpha", -"beta")
+            this <- dplyr::select(dplyr::mutate(this, KR = .data$alpha / (.data$alpha + .data$beta)), -"alpha", -"beta")
             
-            probTable <- pivot_wider(dplyr::select(this, -"n"), names_from = {{ attack_by_var }}, values_from = .data$KR)
+            probTable <- tidyr::pivot_wider(dplyr::select(this, -"n"), names_from = {{ attack_by_var }}, values_from = .data$KR)
             if (FALSE) {
                 ## use team_id in plot
-                tableBB <- mutate(data_game, score = paste(.data$home_team_id, .data$home_team_score, "-", .data$visiting_team_score, .data$visiting_team_id))
+                tableBB <- dplyr::mutate(data_game, score = paste(.data$home_team_id, .data$home_team_score, "-", .data$visiting_team_score, .data$visiting_team_id))
             } else {
                 ## create a short team name automatically
-                tableBB <- mutate(data_game, score = paste(team_name_to_abbrev(.data$home_team), .data$home_team_score,
+                tableBB <- dplyr::mutate(data_game, score = paste(team_name_to_abbrev(.data$home_team), .data$home_team_score,
                                                            "-",
                                                            .data$visiting_team_score, team_name_to_abbrev(.data$visiting_team)))
             }
-            tableBB <- left_join(dplyr::select(tableBB, "set_number", "point_id", "score", "setter_position", "ts_pass_quality", {{ attack_by_var }}, "evaluation"), probTable, by = c("setter_position", "ts_pass_quality"))
+            tableBB <- dplyr::left_join(dplyr::select(tableBB, "set_number", "point_id", "score", "setter_position", "ts_pass_quality", {{ attack_by_var }}, "evaluation"), probTable, by = c("setter_position", "ts_pass_quality"))
 
             choice <- matrix(seq_len(ncol(tableBB) - 7), ncol = (ncol(tableBB) - 7), nrow = nrow(tableBB), byrow = TRUE)
             choice[which(is.na(as.matrix(tableBB[, seq(8, ncol(tableBB), by = 1)])))] <- NA
@@ -215,11 +217,11 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
 #'
 #' @examples
 #' dvw <- ovdata_example("190301_kats_beds")
-#' setter <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Transition",
+#' setter <- ov_simulate_setter_distribution(dvw = dvw, 
 #'                                           n_sim = 150, attack_by = "zone")
 #' ov_plot_ssd(setter, overlay_set_number = TRUE)
 #' @export
-ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, label_setters_by = "id", font_size = 11) {
+ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, label_setters_by = "name", font_size = 11) {
     assert_that(is.flag(overlay_set_number), !is.na(overlay_set_number))
     ssd <- ssd_set_setter_labels(ssd, label_setters_by = label_setters_by)
     bbtrajqi <- mutate(group_by(ssd$simulations, .data$sim_num, .data$team, .data$setter),
@@ -228,13 +230,30 @@ ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, label_setters_by = "id"
                                          trajqi05 = quantile(.data$traj, 0.05), trajqi95 = quantile(.data$traj, 0.95),
                                          trajqim = mean(.data$traj)))
 
+    # Now, in case a setter comes in and out, we need to clean up the plot a bit. Let's define 
+    # 'period_on_court' as a period of successive points played
+    
+    dataplays <- ov_augment_plays(plays(ssd$raw_data), to_add = c("touch_summaries", "setters"))
+    temp <-  dplyr::select(slice(group_by(dplyr::filter(dataplays,!is.na(.data$skill) & !is.na(.data$home_setter_id) & !is.na(visiting_setter_id)) ,.data$match_id, .data$point_id), 1L), "match_id", "point_id", "home_setter_id", "visiting_setter_id")
+    temp$home_setter_period_on_court <- paste0(temp$home_setter_id, expand_rle(rle(temp$home_setter_id)$lengths))
+    temp$visiting_setter_period_on_court <- paste0(temp$visiting_setter_id, expand_rle(rle(temp$visiting_setter_id)$lengths))
+    
+    bbtrajqi <- mutate(left_join(bbtrajqi,
+        select(ungroup(temp), point_id, home_setter_period_on_court, visiting_setter_period_on_court), by = "point_id"),
+        period_on_court = case_when(.data$team %eq% datavolley::home_team(ssd$raw_data) ~ .data$home_setter_period_on_court, 
+                                           .data$team %eq% datavolley::visiting_team(ssd$raw_data) ~ .data$visiting_setter_period_on_court))
+    
     tbC <- mutate(group_by(ssd$actual, .data$team, .data$setter),
                   pts = cumsum(.data$evaluation == "Winning attack"), time = row_number())
-
+    
+    tbC <- mutate(left_join(tbC,
+                            select(ungroup(temp), point_id, home_setter_period_on_court, visiting_setter_period_on_court), by = "point_id"),
+                  period_on_court = case_when(.data$team %eq% datavolley::home_team(ssd$raw_data) ~ .data$home_setter_period_on_court, 
+                                              .data$team %eq% datavolley::visiting_team(ssd$raw_data) ~ .data$visiting_setter_period_on_court))
     g <- ggplot(tbC) +
-        geom_line(data = bbtrajqi, aes_string(x = "point_id", y = "trajqim", group = "setter"), col = "orange") +
-        geom_ribbon(data = bbtrajqi, aes_string(x = "point_id", ymin = "trajqi05", ymax = "trajqi95", group = "setter"), col = "white", fill = "orange", alpha = 0.25) +
-        geom_line(aes_string(x = "point_id", y = "pts", group = "setter", linetype = "setter")) +
+        geom_line(data = bbtrajqi, aes_string(x = "point_id", y = "trajqim", group = "period_on_court"), col = "orange") +
+        geom_ribbon(data = bbtrajqi, aes_string(x = "point_id", ymin = "trajqi05", ymax = "trajqi95", group = "period_on_court"), col = "white", fill = "orange", alpha = 0.25) +
+        geom_line(aes_string(x = "point_id", y = "pts", group = "period_on_court", linetype = "setter")) +
         labs(x = "Point ID", y = "Cumulative points scored") + facet_wrap("team", scales = "free")
 
     if (overlay_set_number) {
@@ -507,7 +526,7 @@ ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition
     
     ## Normalize priors
     prior_table <- drop_na(mutate(prior_table, alpha = .data$alpha / .data$n * .data$n_matches, beta = .data$beta / .data$n* .data$n_matches))
-    list(prior_table = prior_table)
+    list(prior_table = prior_table,  attack_by_var = attack_by_var)
 }
 
 #' Plot the prior table 
@@ -516,40 +535,41 @@ ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition
 #' 
 #' @examples 
 #' hist_dvw <- ovdata_example("190301_kats_beds")
-#' history_t <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone")
+#' history_t <- ov_create_history_table(dvw = hist_dvw, attack_by = "code")
 #' team = history_t$prior_table$team[1]
 #' setter_id = history_t$prior_table$setter_id[1]
-#' ov_plot_history_table(history_t$prior_table, team, setter_id)
+#' ov_plot_history_table(history_t, team, setter_id)
 #' @export
 ov_plot_history_table <- function(history_table, team, setter_id){
-    if ((is.null(history_table) || !is.data.frame(history_table) || nrow(history_table) < 1)) stop("History table is missing or empty")
+    if ((is.null(history_table$prior_table) || !is.data.frame(history_table$prior_table) || nrow(history_table$prior_table) < 1)) stop("History table is missing or empty")
+    
+    attack_by_var <- history_table$attack_by_var
     
     df = dplyr::tibble(thetaBounds = c(0,1)) 
-    history_table <- history_table %>% mutate(setter_position = as.factor(setter_position), start_zone = as.factor(start_zone))
+    ht_tmp <- mutate(history_table$prior_table, 
+                     across(matches("start_zone", "attack_code"), factor), 
+                     across(matches("setter_position"), factor),
+                     across(matches("ts_pass_quality"), factor, levels = c("Perfect", "Good", "OK", "Poor")))
     
-    ht <- history_table %>% dplyr::filter(.data$team %eq% team, .data$setter_id %eq% setter_id) %>%
-        group_by(setter_position, start_zone) %>%
-        nest() %>%
-        mutate(plot = purrr::map(data, ~  ggplot(df, aes(x=thetaBounds)) + xlab("") + ylab("")+ylim(c(0,6)) +
-                                     apply(.x, 1, function(y) geom_area(aes(fill = y['ts_pass_quality']), stat = "function", fun = dbeta, alpha = 0.75, 
-                                               args = list(shape1 = as.numeric(y['alpha']), shape2 = as.numeric(y['beta'])))) + theme_bw(base_size = 11)  + theme(legend.position = 'none')
-        )) 
+    ht <-  mutate(tidyr::nest(dplyr::group_by(dplyr::filter(ht_tmp, .data$team %eq% team, .data$setter_id %eq% setter_id),
+                                              setter_position, dplyr::across({{ attack_by_var }}))),
+                  plot = purrr::map(data, ~  
+                                        ggplot(df, aes(x=thetaBounds)) + xlab("") + ylab("")+ylim(c(0,6)) +
+                                        apply(.x, 1, function(y) geom_area(aes(fill = y['ts_pass_quality'], col = y['ts_pass_quality']), stat = "function", fun = dbeta, alpha = 0.5, 
+                                                                           args = list(shape1 = as.numeric(y['alpha']), shape2 = as.numeric(y['beta'])))) + theme_bw(base_size = 11)  + 
+                                        theme(legend.position = 'none', plot.margin = unit(c(1,0,0,0.1), "pt"))
+                  )) 
         
-    all_combs = 
-        history_table %>% 
-        mutate(setter_position = as.factor(setter_position), start_zone = as.factor(start_zone)) %>% 
-        select(setter_position, start_zone) %>% distinct() %>%
-        complete(setter_position, start_zone)
+    all_combs = tidyr::complete(distinct(
+        dplyr::select(ht_tmp, .data$setter_position, matches("start_zone"), matches("attack_code"))), setter_position, .data[[{{ attack_by_var }}]])
     
-    ht <-full_join(ht, all_combs) %>% arrange(setter_position, start_zone) 
+    ht <-arrange(full_join(ht, all_combs), setter_position, {{ attack_by_var }}) 
 
-    ht <- ht %>% mutate(plot = ifelse(plot == "NULL", list(ggplot() + theme_void()), plot))
+    ht <-mutate(ht, plot = ifelse(plot == "NULL", list(ggplot() + theme_void()), plot))
     
-    labels = pull(mutate(unite(ht, label, setter_position, start_zone, remove = FALSE, sep = " "), 
-                    label = case_when(.data$setter_position == ht$setter_position[1] | .data$start_zone == ht$start_zone[1] ~ label,
-                                          TRUE ~ "")), label)
+    labels = pull(unite(ht, label, setter_position, {{ attack_by_var }}, remove = FALSE, sep = " "), label)
     
-    cowplot::plot_grid(plotlist = ht$plot, labels = labels, ncol = nlevels(ht$start_zone),  label_x = -0.04, label_y = 1.01)
+    cowplot::plot_grid(plotlist = ht$plot, labels = labels, nrow = nlevels(ht$setter_position),  label_x = -0.04, label_y = 1.01)
     
     }
 

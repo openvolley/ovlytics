@@ -14,6 +14,6 @@
 #' @importFrom patchwork plot_layout wrap_plots
 #' @importFrom rlang .data
 #' @importFrom stats na.omit quantile rbeta rbinom runif setNames
-#' @importFrom tidyr drop_na pivot_longer pivot_wider
+#' @importFrom tidyr drop_na pivot_longer pivot_wider complete nest unite
 #' @importFrom utils packageVersion
 NULL
