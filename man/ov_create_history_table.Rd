@@ -8,6 +8,7 @@ ov_create_history_table(
   dvw,
   play_phase = c("Reception", "Transition"),
   attack_by = "code",
+  setter_position_by = "rotation",
   exclude_attacks = c("PR")
 )
 }
@@ -16,7 +17,9 @@ ov_create_history_table(
 
 \item{play_phase}{character: one or both of "Reception", "Transition"}
 
-\item{attack_by}{string: either "code" or "zone"}
+\item{attack_by}{string: either "code", "zone" or "tempo"}
+
+\item{setter_position_by}{string: either "rotation", or "front_back"}
 
 \item{exclude_attacks}{character: vector of attack codes to exclude}
 }
@@ -29,15 +32,17 @@ Create a prior table from a dvw or a directory of dvw files
 \examples{
 ## use this file to create the priors
 hist_dvw <- ovdata_example("190301_kats_beds")
-history_t <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone")
+history_t <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone", 
+                                   setter_position_by = "front_back")
 
 ## use it on another file (here, the same file for demo purposes)
 ## usually the history would be from a reference set of previous matches
 
 dvw <- ovdata_example("190301_kats_beds")
-setter <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception", n_sim = 500,
+setter <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception", n_sim = 100,
                                   attack_by = "zone", attack_options = "use_history",
-                                  history_table = history_t$prior_table, filter_sim = TRUE)
+                                  setter_position_by = "front_back",
+                                  history_table = history_t, filter_sim = TRUE)
 
 ## plot the results
 ov_plot_ssd(setter, overlay_set_number = TRUE)

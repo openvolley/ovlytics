@@ -8,6 +8,10 @@ ov_print_history_table(history_table, team, setter_id)
 }
 \arguments{
 \item{history_table}{data.frame: the \code{prior_table} component of the object returned by \code{\link[=ov_create_history_table]{ov_create_history_table()}}}
+
+\item{team}{string: team name}
+
+\item{setter_id}{string: setter_id}
 }
 \description{
 Print the prior table
@@ -17,5 +21,5 @@ hist_dvw <- ovdata_example("190301_kats_beds")
 history_t <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone")
 team = history_t$prior_table$team[1]
 setter_id = history_t$prior_table$setter_id[1]
-ov_print_history_table(history_t$prior_table, team, setter_id)
+ov_print_history_table(history_t, team, setter_id)
 }

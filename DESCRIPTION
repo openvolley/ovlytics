@@ -1,21 +1,25 @@
 Package: ovlytics
 Title: Functions and Algorithms for Volleyball Analytics
-Version: 0.0.12
+Version: 0.0.13
 Authors@R: c(person("Ben", "Raymond", email = "ben@untan.gl", role = c("aut", "cre")),
              person("Adrien", "Ickowicz", role = "aut"))
 Description: Analytical functions for volleyball analytics, to be used in conjunction with the datavolley and peranavolley packages.
 Imports:
     assertthat,
+    cowplot,
     datavolley,
     dplyr (>= 0.8.5),
     forcats,
     ggplot2,
     grid,
+    gt,
     methods,
     ovdata,
-    purrr,
+    paletteer,
     patchwork,
+    purrr,
     rlang,
+    scales,
     stringr,
     tidyr
 Suggests:
