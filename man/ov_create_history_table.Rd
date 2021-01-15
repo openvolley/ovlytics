@@ -17,7 +17,7 @@ ov_create_history_table(
 
 \item{play_phase}{character: one or both of "Reception", "Transition"}
 
-\item{attack_by}{string: either "code", "zone" or "tempo"}
+\item{attack_by}{string: either "code", "zone", "tempo" or "setter call"}
 
 \item{setter_position_by}{string: either "rotation", or "front_back"}
 
@@ -32,7 +32,7 @@ Create a prior table from a dvw or a directory of dvw files
 \examples{
 ## use this file to create the priors
 hist_dvw <- ovdata_example("190301_kats_beds")
-history_t <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone", 
+history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "setter call", 
                                    setter_position_by = "front_back")
 
 ## use it on another file (here, the same file for demo purposes)
@@ -40,9 +40,9 @@ history_t <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone",
 
 dvw <- ovdata_example("190301_kats_beds")
 setter <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception", n_sim = 100,
-                                  attack_by = "zone", attack_options = "use_history",
+                                  attack_by = "setter call", attack_options = "use_history",
                                   setter_position_by = "front_back",
-                                  history_table = history_t, filter_sim = TRUE)
+                                  history_table = history_table, filter_sim = TRUE)
 
 ## plot the results
 ov_plot_ssd(setter, overlay_set_number = TRUE)

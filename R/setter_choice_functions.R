@@ -17,7 +17,7 @@ team_name_to_abbrev <- function(x, upper = FALSE) {
 #' @param attack_options string: either "use_data" or "use_history"
 #' @param setter_position_by string: either "rotation" or "front_back"
 #' @param history_table list: (only if `attack_options` is "use_history") the object returned by [ov_create_history_table()]
-#' @param attack_by string: either "code", "zone" or "tempo"
+#' @param attack_by string: either "code", "zone", "tempo", "setter call"
 #' @param exclude_attacks character: vector of attack codes to exclude
 #' @param shiny_progress numeric: an optional two-element vector. If not `NULL` or `NA`, [shiny::setProgress()] calls will be made during simulation with `value`s in this range
 #'
@@ -27,7 +27,7 @@ team_name_to_abbrev <- function(x, upper = FALSE) {
 #' dvw <- ovdata_example("190301_kats_beds")
 #' system.time({
 #'   ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception",
-#'                                          n_sim = 100, attack_by = "tempo", 
+#'                                          n_sim = 100, attack_by = "setter call", 
 #'                                          setter_position_by = "front_back")
 #' })
 #' @export
@@ -35,11 +35,12 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                                             epsilon = 1, filter_sim = FALSE, attack_options = "use_data", setter_position_by = "rotation", history_table = NULL,
                                             attack_by = "code", exclude_attacks = c("PR"), shiny_progress = NULL) {
     ## TODO check input parms
-    attack_by <- match.arg(attack_by, c("zone", "code", "tempo"))
+    attack_by <- match.arg(attack_by, c("zone", "code", "tempo", "setter call"))
     attack_by_var <- switch(attack_by,
                             "code" = "attack_code",
                             "zone" = "start_zone", 
-                            "tempo" = "skill_type")
+                            "tempo" = "skill_type", 
+                            "setter call" = "set_code")
     setter_position_by <- match.arg(setter_position_by, c("rotation", "front_back"))
     setter_position_by_var <- switch(setter_position_by,
                             "rotation" = "setter_position",
@@ -54,7 +55,19 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
 
     data <- ov_augment_plays(plays(raw_data), to_add = c("touch_summaries", "setters"))
     team_setter <- tidyr::drop_na(dplyr::distinct(dplyr::select(dplyr::filter(data, .data$skill == "Attack" & !.data$attack_code %in% exclude_attacks & tolower(.data$phase) %in% tolower(play_phase)), "team", "setter_id")))
-    data <- dplyr::filter(data, .data$skill == "Attack" & !.data$attack_code %in% exclude_attacks & tolower(.data$phase) %in% tolower(play_phase))
+    
+    # If setter call we need to propagate the setter call to the subsequent attack
+    if(attack_by == "setter call"){
+        data <- dplyr::mutate(data, 
+                                set_code = case_when(.data$skill == "Attack" & lag(.data$skill) == "Set" ~ lag(.data$set_code), 
+                                                         TRUE ~ .data$set_code), 
+                                set_description = case_when(.data$skill == "Attack" & lag(.data$skill) == "Set" ~ lag(.data$set_description), 
+                                                            TRUE ~ .data$set_description)
+                              )
+    }
+    
+    
+    data <- drop_na(dplyr::filter(data, .data$skill == "Attack" & !.data$attack_code %in% exclude_attacks & tolower(.data$phase) %in% tolower(play_phase)), {{ attack_by_var }})
 
     sim <- actual <- rates <- NULL
 
@@ -437,6 +450,34 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
                 ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")")))
         })
     }
+    if (attack_by_var == "set_code") {
+        
+        attack_zones_sim <- mutate(attack_zones_sim, 
+                                   rotation = forcats::fct_relevel(as.factor(as.character(.data$setter_position)), setter_rotation_levels),
+                                   attack_choice = forcats::fct_relevel(as.factor(as.character(.data$attack_choice)), levels(.data$attack_choice)))
+        attack_zones_actual <- mutate(attack_zones_actual,
+                                      skill_type = forcats::fct_relevel(as.factor(as.character(.data$set_code)), levels(.data$set_code)))
+        attack_zones_actual$rotation <- forcats::fct_relevel(as.factor(as.character(unlist(attack_zones_actual[,setter_position_by_var]))), setter_rotation_levels)
+        
+        gActual <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
+            ggplot(mutate(dplyr::filter(attack_zones_actual, .data$team == xx & .data$setter == yy),
+                          lab = paste0(round(.data$rate, 2) * 100, "%")), aes_string(x = "set_code"))  + 
+                geom_col(aes_string(y= "rate")) + facet_wrap(~rotation) +
+                scale_y_continuous(labels=scales::percent) + theme_bw()+
+                theme(axis.text.x = element_text(size = 9.5*0.75278, angle = 30, hjust = 1)) + 
+                ylab("Percent")+ xlab("")+
+                ggtitle(twrapf(paste0("Actual distribution - ", yy, " (", xx, ")")))
+        })
+        gSim <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
+            ggplot(mutate(dplyr::filter(attack_zones_sim, .data$team == xx & .data$setter == yy),
+                          lab = paste0(round(.data$rate, 2) * 100, "%")), aes_string(x = "attack_choice"))  + 
+                geom_col(aes_string(y= "rate")) + facet_wrap(~rotation) +
+                scale_y_continuous(labels=scales::percent) + theme_bw()+
+                theme(axis.text.x = element_text(size = 9.5*0.75278, angle = 30, hjust = 1)) + 
+                ylab("Percent")+ xlab("")+
+                ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")")))
+        })
+    }
     wrap_plots(c(gActual, gSim), nrow = 2) + plot_layout(guides = "collect")
 }
 
@@ -497,7 +538,7 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
 #'
 #' @param dvw string: path to one or more datavolley files, a list of one or more datavolley objects, or a directory containing datavolley files
 #' @param play_phase character: one or both of "Reception", "Transition"
-#' @param attack_by string: either "code", "zone" or "tempo"
+#' @param attack_by string: either "code", "zone", "tempo" or "setter call"
 #' @param setter_position_by string: either "rotation", or "front_back"
 #' @param exclude_attacks character: vector of attack codes to exclude
 #'
@@ -506,7 +547,7 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
 #' @examples
 #' ## use this file to create the priors
 #' hist_dvw <- ovdata_example("190301_kats_beds")
-#' history_t <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone", 
+#' history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "setter call", 
 #'                                    setter_position_by = "front_back")
 #'
 #' ## use it on another file (here, the same file for demo purposes)
@@ -514,9 +555,9 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
 #'
 #' dvw <- ovdata_example("190301_kats_beds")
 #' setter <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception", n_sim = 100,
-#'                                   attack_by = "zone", attack_options = "use_history",
+#'                                   attack_by = "setter call", attack_options = "use_history",
 #'                                   setter_position_by = "front_back",
-#'                                   history_table = history_t, filter_sim = TRUE)
+#'                                   history_table = history_table, filter_sim = TRUE)
 #'
 #' ## plot the results
 #' ov_plot_ssd(setter, overlay_set_number = TRUE)
@@ -524,11 +565,12 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
 #'
 #' @export
 ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition"), attack_by = "code", setter_position_by = "rotation", exclude_attacks = c("PR")) {
-    attack_by <- match.arg(attack_by, c("code", "zone", "tempo"))
+    attack_by <- match.arg(attack_by, c("code", "zone", "tempo", "setter call"))
     attack_by_var <- switch(attack_by,
                            "code" = "attack_code",
                            "zone" = "start_zone", 
-                           "tempo" = "skill_type")
+                           "tempo" = "skill_type", 
+                           "setter call" = "set_code")
     setter_position_by <- match.arg(setter_position_by, c("rotation", "front_back"))
     setter_position_by_var <- switch(setter_position_by,
                                      "rotation" = "setter_position",
@@ -562,7 +604,18 @@ ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition
     data_game <- ov_augment_plays(raw_data, to_add = c("touch_summaries", "setters"))
     data_game <- mutate(data_game, setter_position = case_when(.data$team == .data$home_team ~ .data$home_setter_position,
                                                                .data$team == .data$visiting_team ~ .data$visiting_setter_position))
-    data_game <- dplyr::filter(data_game, .data$skill == "Attack" & !.data$attack_code %in% exclude_attacks & tolower(.data$phase) %in% tolower(play_phase))
+    
+    if(attack_by == "setter call"){
+        data_game <- dplyr::mutate(data_game, 
+                              set_code = case_when(.data$skill == "Attack" & lag(.data$skill) == "Set" ~ lag(.data$set_code), 
+                                                   TRUE ~ .data$set_code), 
+                              set_description = case_when(.data$skill == "Attack" & lag(.data$skill) == "Set" ~ lag(.data$set_description), 
+                                                          TRUE ~ .data$set_description)
+        )
+    }
+    
+    
+    data_game <- drop_na(dplyr::filter(data_game, .data$skill == "Attack" & !.data$attack_code %in% exclude_attacks & tolower(.data$phase) %in% tolower(play_phase)), {{ attack_by_var }})
 
     # prior_table <- if (packageVersion("dplyr") >= "1.0.0") {
     #                    group_by(data_game, .data$team, .data$setter_id, .data$setter_position, .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
@@ -599,11 +652,11 @@ ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition
 #' 
 #' @examples 
 #' hist_dvw <- ovdata_example("190301_kats_beds")
-#' history_t <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone", 
+#' history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone", 
 #'                                                     setter_position_by = "front_back")
-#' team = history_t$prior_table$team[1]
-#' setter_id = history_t$prior_table$setter_id[1]
-#' ov_plot_history_table(history_t, team, setter_id)
+#' team = history_table$prior_table$team[1]
+#' setter_id = history_table$prior_table$setter_id[1]
+#' ov_plot_history_table(history_table, team, setter_id)
 #' @export
 ov_plot_history_table <- function(history_table, team, setter_id){
     if ((is.null(history_table$prior_table) || !is.data.frame(history_table$prior_table) || nrow(history_table$prior_table) < 1)) stop("History table is missing or empty")
@@ -619,6 +672,7 @@ ov_plot_history_table <- function(history_table, team, setter_id){
     ht_tmp <- mutate(history_table$prior_table, 
                      dplyr::across(dplyr::matches("start_zone"), factor), 
                      dplyr::across(dplyr::matches("attack_code"), factor), 
+                     dplyr::across(dplyr::matches("set_code"), factor), 
                      dplyr::across(dplyr::matches("skill_type"), factor), 
                      dplyr::across(dplyr::matches("setter_position"), factor, levels = setter_rotation_levels),
                      dplyr::across(dplyr::matches("setter_front_back"), factor, levels = setter_rotation_levels),
@@ -633,7 +687,7 @@ ov_plot_history_table <- function(history_table, team, setter_id){
                                         theme(legend.position = 'none',plot.margin = unit(c(1,0,0,0.1), "pt"))))
         
     all_combs = tidyr::complete(distinct(
-        dplyr::select(ht_tmp, dplyr::matches("setter_front_back"), dplyr::matches("setter_position"), dplyr::matches("start_zone"), dplyr::matches("attack_code"), dplyr::matches("skill_type"))), .data[[{{ setter_position_by_var }}]], .data[[{{ attack_by_var }}]])
+        dplyr::select(ht_tmp, dplyr::matches("setter_front_back"), dplyr::matches("setter_position"), dplyr::matches("start_zone"), dplyr::matches("attack_code"), dplyr::matches("set_code"), dplyr::matches("skill_type"))), .data[[{{ setter_position_by_var }}]], .data[[{{ attack_by_var }}]])
     
     ht <-dplyr::arrange(full_join(ht, all_combs), dplyr::across({{ setter_position_by_var }}), across({{ attack_by_var }})) 
     
@@ -654,10 +708,10 @@ ov_plot_history_table <- function(history_table, team, setter_id){
 #' 
 #' @examples 
 #' hist_dvw <- ovdata_example("190301_kats_beds")
-#' history_t <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone")
-#' team = history_t$prior_table$team[1]
-#' setter_id = history_t$prior_table$setter_id[1]
-#' ov_print_history_table(history_t, team, setter_id)
+#' history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone")
+#' team = history_table$prior_table$team[1]
+#' setter_id = history_table$prior_table$setter_id[1]
+#' ov_print_history_table(history_table, team, setter_id)
 #' @export
 ov_print_history_table <- function(history_table, team, setter_id){
     
@@ -683,13 +737,14 @@ ov_print_history_table <- function(history_table, team, setter_id){
     ht_tmp <- mutate(history_table$prior_table, 
                      dplyr::across(dplyr::matches("start_zone"), factor), 
                      dplyr::across(dplyr::matches("attack_code"), factor), 
+                     dplyr::across(dplyr::matches("set_code"), factor), 
                      dplyr::across(dplyr::matches("skill_type"), factor), 
                      dplyr::across(dplyr::matches("setter_position"), factor, levels = setter_rotation_levels),
                      dplyr::across(dplyr::matches("setter_front_back"), factor, levels = setter_rotation_levels),
                      dplyr::across(dplyr::matches("ts_pass_quality"), factor, levels = c("Perfect", "Good", "OK", "Poor")),
                      kr = round(.data$alpha / (.data$alpha +.data$beta),2))
     
-    ht <-select(dplyr::filter(ht_tmp, .data$team %eq% team_select, .data$setter_id %eq% setter_select), dplyr::matches("setter_front_back"), dplyr::matches("setter_position"), .data$ts_pass_quality, .data$kr, dplyr::matches("start_zone"), dplyr::matches("attack_code"), dplyr::matches("skill_type"))
+    ht <-select(dplyr::filter(ht_tmp, .data$team %eq% team_select, .data$setter_id %eq% setter_select), dplyr::matches("setter_front_back"), dplyr::matches("setter_position"), .data$ts_pass_quality, .data$kr, dplyr::matches("start_zone"), dplyr::matches("set_code"), dplyr::matches("attack_code"), dplyr::matches("skill_type"))
     
     ht <- group_by(arrange(pivot_wider(ht, names_from = {{ attack_by_var }}, values_from = .data$kr), {{ setter_position_by_var }}, .data$ts_pass_quality), dplyr::across({{ setter_position_by_var }}))
     
