@@ -9,7 +9,8 @@ ov_create_history_table(
   play_phase = c("Reception", "Transition"),
   attack_by = "code",
   setter_position_by = "rotation",
-  exclude_attacks = c("PR")
+  exclude_attacks = c("PR"),
+  normalize_parameters = TRUE
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ ov_create_history_table(
 \item{setter_position_by}{string: either "rotation", or "front_back"}
 
 \item{exclude_attacks}{character: vector of attack codes to exclude}
+
+\item{normalize_parameters}{logical: reduce the prior parameter values}
 }
 \value{
 A list, currently with one component named "prior_table"

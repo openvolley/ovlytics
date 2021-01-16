@@ -541,6 +541,7 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
 #' @param attack_by string: either "code", "zone", "tempo" or "setter call"
 #' @param setter_position_by string: either "rotation", or "front_back"
 #' @param exclude_attacks character: vector of attack codes to exclude
+#' @param normalize_parameters logical: reduce the prior parameter values
 #'
 #' @return A list, currently with one component named "prior_table"
 #'
@@ -564,7 +565,8 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
 #' ov_plot_distribution(setter)
 #'
 #' @export
-ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition"), attack_by = "code", setter_position_by = "rotation", exclude_attacks = c("PR")) {
+ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition"), attack_by = "code", setter_position_by = "rotation", 
+                                    exclude_attacks = c("PR"), normalize_parameters = TRUE) {
     attack_by <- match.arg(attack_by, c("code", "zone", "tempo", "setter call"))
     attack_by_var <- switch(attack_by,
                            "code" = "attack_code",
@@ -637,10 +639,13 @@ ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition
         dplyr::group_by_at(prior_table, c("team", "setter_id", setter_position_by_var, "ts_pass_quality", attack_by_var))
     }
     
-    prior_table <- ungroup(dplyr::summarize(prior_table, alpha = sum(.data$alpha), beta = sum(.data$beta), n = sum(n), n_matches = n()))
+    prior_table <- drop_na(ungroup(dplyr::summarize(prior_table, alpha = sum(.data$alpha), beta = sum(.data$beta), n = sum(n), n_matches = n())))
     
     ## Normalize priors
-    prior_table <- drop_na(mutate(prior_table, alpha = .data$alpha / .data$n * .data$n_matches, beta = .data$beta / .data$n* .data$n_matches))
+    if(normalize_parameters){
+        prior_table <- mutate(prior_table, alpha = .data$alpha / .data$n * .data$n_matches, beta = .data$beta / .data$n* .data$n_matches)
+    }
+    
     list(prior_table = prior_table,  attack_by_var = attack_by_var, setter_position_by_var = setter_position_by_var)
 }
 
@@ -652,14 +657,18 @@ ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition
 #' 
 #' @examples 
 #' hist_dvw <- ovdata_example("190301_kats_beds")
-#' history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone", 
-#'                                                     setter_position_by = "front_back")
-#' team = history_table$prior_table$team[1]
-#' setter_id = history_table$prior_table$setter_id[1]
+#' history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "tempo", 
+#'                                                     setter_position_by = "front_back", 
+#'                                                     normalize_parameters = FALSE)
+#' team = unique(history_table$prior_table$team)[1]
+#' setter_id = unique(history_table$prior_table$setter_id)[4]
 #' ov_plot_history_table(history_table, team, setter_id)
 #' @export
 ov_plot_history_table <- function(history_table, team, setter_id){
     if ((is.null(history_table$prior_table) || !is.data.frame(history_table$prior_table) || nrow(history_table$prior_table) < 1)) stop("History table is missing or empty")
+    
+    team_select = team
+    setter_select = setter_id
     
     attack_by_var <- history_table$attack_by_var
     setter_position_by_var <- history_table$setter_position_by_var
@@ -678,7 +687,7 @@ ov_plot_history_table <- function(history_table, team, setter_id){
                      dplyr::across(dplyr::matches("setter_front_back"), factor, levels = setter_rotation_levels),
                      dplyr::across(dplyr::matches("ts_pass_quality"), factor, levels = c("Perfect", "Good", "OK", "Poor")))
     
-    ht <-  mutate(tidyr::nest(dplyr::group_by(dplyr::filter(ht_tmp, .data$team %eq% team, .data$setter_id %eq% setter_id),
+    ht <-  mutate(tidyr::nest(dplyr::group_by(dplyr::filter(ht_tmp, .data$team %eq% team_select, .data$setter_id %eq% setter_select),
                                               dplyr::across({{ setter_position_by_var }}), dplyr::across({{ attack_by_var }}))),
                   plot = purrr::map(.data$data, ~  
                                         ggplot(df, aes_string(x="thetaBounds")) + xlab("") + ylab("")+ylim(c(0,6)) +
