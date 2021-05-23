@@ -509,15 +509,22 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
     cd_bandit <- pivot_longer(cd_bandit, cols = dplyr::contains("Bandit choice"), names_to = "attack_choice_b", values_to = "Probability")
     cd_bandit <- mutate(cd_bandit, attack_choice_b = stringr::str_remove(.data$attack_choice_b, "Bandit choice "))
     cd_bandit$attack_choice <- as.factor(cd_bandit[[attack_by_var]])
+    
     cd_setter <- ssd$conditional_simulations
     cd_setter$attack_choice <- as.factor(cd_setter[[attack_by_var]])
     cd_setter <- mutate(group_by(cd_setter, .data$team, .data$setter), time = row_number())
+    
+    cd_setter$ts_pass_quality <- forcats::fct_relevel(as.factor(as.character(unlist(cd_setter$ts_pass_quality))), c("Poor", "OK", "Good", "Prefect"))
+    
     cd_bandit <- ungroup(mutate(group_by(cd_bandit, .data$team, .data$setter, .data$time, .data$point_id),
                                 choice_bandit = case_when(.data$Probability == max(.data$Probability, na.rm=TRUE) ~ .data$attack_choice_b),
                                 least_likely_choice = case_when(.data$Probability == min(.data$Probability, na.rm=TRUE) & .data$Probability < 1 ~ attack_choice_b)))
+    
+    cd_bandit$ts_pass_quality <- forcats::fct_relevel(as.factor(as.character(unlist(cd_bandit$ts_pass_quality))), c("Poor", "OK", "Good", "Prefect"))
+    
     setter_team <- distinct(dplyr::select(cd_setter, "team", "setter"))
     gCondDist <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
-        g <- ggplot(data = dplyr::filter(cd_setter, .data$team == xx, .data$setter == yy), aes_string(x = "time", y = "attack_choice")) +
+        g1 <- ggplot(data = dplyr::filter(cd_setter, .data$team == xx, .data$setter == yy), aes_string(x = "time", y = "attack_choice")) +
             geom_tile(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy), aes_string(x = "time + 0.5", y = "attack_choice_b", fill = "Probability"), alpha = 0.75) +
             geom_step(group = 1) +
             geom_point(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy), aes_string(x = "time + 0.5", y = "choice_bandit"), col = "white", size = 1) +
@@ -527,7 +534,13 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
             theme(legend.position = "none") + labs(x = "Game history", y = "Attack choice") +
             ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")"))) 
 
-            if(split_set) g <- g + facet_wrap(~set_number, scales = "free_x")
+        g2 <- ggplot(data = dplyr::filter(cd_setter, .data$team == xx, .data$setter == yy), aes_string(x = "time")) +
+                geom_tile(aes_string(fill = "ts_pass_quality", y ="1")) + 
+            geom_text(aes_string(y="1", label = "setter_position"), size = 2)+
+            scale_fill_brewer()+
+            theme_void() + theme(legend.position = 'none')
+
+            if(split_set) g <- (g1  + facet_wrap(~set_number, scales = "free_x")) / (g2 + facet_wrap(~set_number, scales = "free_x")) else g <- g1 / g2 + patchwork::plot_layout(heights = c(8, 1))
             g
     })
     wrap_plots(c(gCondDist)) + plot_layout(guides = "collect")
