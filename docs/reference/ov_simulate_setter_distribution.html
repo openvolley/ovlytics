@@ -72,7 +72,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">ovlytics</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.8</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.12</span>
       </span>
     </div>
 
@@ -80,7 +80,7 @@
       <ul class="nav navbar-nav">
         <li>
   <a href="../index.html">
-    <span class="fas fa fas fa-home fa-lg"></span>
+    <span class="fas fa-home fa-lg"></span>
      
   </a>
 </li>
@@ -159,7 +159,7 @@
     </tr>
     <tr>
       <th>history_table</th>
-      <td><p>data.frame: (only if <code>attack_options</code> is "use_history") the <code>history_table</code> component of the object returned by <code><a href='ov_create_history_table.html'>ov_create_history_table()</a></code></p></td>
+      <td><p>data.frame: (only if <code>attack_options</code> is "use_history") the <code>prior_table</code> component of the object returned by <code><a href='ov_create_history_table.html'>ov_create_history_table()</a></code></p></td>
     </tr>
     <tr>
       <th>attack_by</th>
@@ -171,10 +171,13 @@
     </tr>
     <tr>
       <th>shiny_progress</th>
-      <td><p>numeric: an optional two-element vector. If not <code>NULL</code> or <code>NA</code>, <code><a href='https://shiny.rstudio.com/reference/shiny/latest/withProgress.html'>shiny::setProgress()</a></code> calls will be made during simulation with <code>value</code>s in this range</p></td>
+      <td><p>numeric: an optional two-element vector. If not <code>NULL</code> or <code>NA</code>, <code><a href='https://rdrr.io/pkg/shiny/man/withProgress.html'>shiny::setProgress()</a></code> calls will be made during simulation with <code>value</code>s in this range</p></td>
     </tr>
     </table>
 
+    <h2 class="hasAnchor" id="see-also"><a class="anchor" href="#see-also"></a>See also</h2>
+
+    <div class='dont-index'><p><code><a href='ov_create_history_table.html'>ov_create_history_table()</a></code></p></div>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='va'>dvw</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/pkg/ovdata/man/ovdata_example.html'>ovdata_example</a></span><span class='op'>(</span><span class='st'>"190301_kats_beds"</span><span class='op'>)</span>
@@ -183,7 +186,7 @@
                                          n_sim <span class='op'>=</span> <span class='fl'>100</span>, attack_by <span class='op'>=</span> <span class='st'>"zone"</span><span class='op'>)</span>
 <span class='op'>}</span><span class='op'>)</span>
 </div><div class='output co'>#&gt;    user  system elapsed 
-#&gt;   2.054   0.024   2.085 </div></pre>
+#&gt;   2.657   0.032   2.690 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">
