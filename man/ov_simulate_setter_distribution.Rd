@@ -12,6 +12,7 @@ ov_simulate_setter_distribution(
   epsilon = 1,
   filter_sim = FALSE,
   attack_options = "use_data",
+  setter_position_by = "rotation",
   history_table = NULL,
   attack_by = "code",
   exclude_attacks = c("PR"),
@@ -33,9 +34,11 @@ ov_simulate_setter_distribution(
 
 \item{attack_options}{string: either "use_data" or "use_history"}
 
-\item{history_table}{data.frame: (only if \code{attack_options} is "use_history") the \code{prior_table} component of the object returned by \code{\link[=ov_create_history_table]{ov_create_history_table()}}}
+\item{setter_position_by}{string: either "rotation" or "front_back"}
 
-\item{attack_by}{string: either "code" or "zone"}
+\item{history_table}{list: (only if \code{attack_options} is "use_history") the object returned by \code{\link[=ov_create_history_table]{ov_create_history_table()}}}
+
+\item{attack_by}{string: either "code", "zone", "tempo", "setter call"}
 
 \item{exclude_attacks}{character: vector of attack codes to exclude}
 
@@ -48,7 +51,8 @@ Simulate a Bayesian Bandit choice for a given set of probabilities and a number 
 dvw <- ovdata_example("190301_kats_beds")
 system.time({
   ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception",
-                                         n_sim = 100, attack_by = "zone")
+                                         n_sim = 100, attack_by = "setter call", 
+                                         setter_position_by = "front_back")
 })
 }
 \seealso{
