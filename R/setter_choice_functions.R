@@ -514,13 +514,13 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
     cd_setter$attack_choice <- as.factor(cd_setter[[attack_by_var]])
     cd_setter <- mutate(group_by(cd_setter, .data$team, .data$setter), time = row_number())
     
-    cd_setter$ts_pass_quality <- forcats::fct_relevel(as.factor(as.character(unlist(cd_setter$ts_pass_quality))), c("Poor", "OK", "Good", "Prefect"))
+    cd_setter$ts_pass_quality <- forcats::fct_relevel(as.factor(as.character(unlist(cd_setter$ts_pass_quality))), c("Poor", "OK", "Good", "Perfect"))
     
     cd_bandit <- ungroup(mutate(group_by(cd_bandit, .data$team, .data$setter, .data$time, .data$point_id),
                                 choice_bandit = case_when(.data$Probability == max(.data$Probability, na.rm=TRUE) ~ .data$attack_choice_b),
                                 least_likely_choice = case_when(.data$Probability == min(.data$Probability, na.rm=TRUE) & .data$Probability < 1 ~ attack_choice_b)))
     
-    cd_bandit$ts_pass_quality <- forcats::fct_relevel(as.factor(as.character(unlist(cd_bandit$ts_pass_quality))), c("Poor", "OK", "Good", "Prefect"))
+    cd_bandit$ts_pass_quality <- forcats::fct_relevel(as.factor(as.character(unlist(cd_bandit$ts_pass_quality))), c("Poor", "OK", "Good", "Perfect"))
     
     setter_team <- distinct(dplyr::select(cd_setter, "team", "setter"))
     gCondDist <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
