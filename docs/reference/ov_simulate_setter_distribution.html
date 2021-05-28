@@ -72,7 +72,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">ovlytics</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.12</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.0</span>
       </span>
     </div>
 
@@ -120,6 +120,7 @@
   epsilon <span class='op'>=</span> <span class='fl'>1</span>,
   filter_sim <span class='op'>=</span> <span class='cn'>FALSE</span>,
   attack_options <span class='op'>=</span> <span class='st'>"use_data"</span>,
+  setter_position_by <span class='op'>=</span> <span class='st'>"rotation"</span>,
   history_table <span class='op'>=</span> <span class='cn'>NULL</span>,
   attack_by <span class='op'>=</span> <span class='st'>"code"</span>,
   exclude_attacks <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"PR"</span><span class='op'>)</span>,
@@ -158,12 +159,16 @@
       <td><p>string: either "use_data" or "use_history"</p></td>
     </tr>
     <tr>
+      <th>setter_position_by</th>
+      <td><p>string: either "rotation" or "front_back"</p></td>
+    </tr>
+    <tr>
       <th>history_table</th>
-      <td><p>data.frame: (only if <code>attack_options</code> is "use_history") the <code>prior_table</code> component of the object returned by <code><a href='ov_create_history_table.html'>ov_create_history_table()</a></code></p></td>
+      <td><p>list: (only if <code>attack_options</code> is "use_history") the object returned by <code><a href='ov_create_history_table.html'>ov_create_history_table()</a></code></p></td>
     </tr>
     <tr>
       <th>attack_by</th>
-      <td><p>string: either "code" or "zone"</p></td>
+      <td><p>string: either "code", "zone", "tempo", "setter call"</p></td>
     </tr>
     <tr>
       <th>exclude_attacks</th>
@@ -183,10 +188,11 @@
     <pre class="examples"><div class='input'><span class='va'>dvw</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/pkg/ovdata/man/ovdata_example.html'>ovdata_example</a></span><span class='op'>(</span><span class='st'>"190301_kats_beds"</span><span class='op'>)</span>
 <span class='fu'><a href='https://rdrr.io/r/base/system.time.html'>system.time</a></span><span class='op'>(</span><span class='op'>{</span>
   <span class='va'>ssd</span> <span class='op'>&lt;-</span> <span class='fu'>ov_simulate_setter_distribution</span><span class='op'>(</span>dvw <span class='op'>=</span> <span class='va'>dvw</span>, play_phase <span class='op'>=</span> <span class='st'>"Reception"</span>,
-                                         n_sim <span class='op'>=</span> <span class='fl'>100</span>, attack_by <span class='op'>=</span> <span class='st'>"zone"</span><span class='op'>)</span>
+                                         n_sim <span class='op'>=</span> <span class='fl'>100</span>, attack_by <span class='op'>=</span> <span class='st'>"setter call"</span>, 
+                                         setter_position_by <span class='op'>=</span> <span class='st'>"front_back"</span><span class='op'>)</span>
 <span class='op'>}</span><span class='op'>)</span>
 </div><div class='output co'>#&gt;    user  system elapsed 
-#&gt;   2.657   0.032   2.690 </div></pre>
+#&gt;   2.731   0.049   2.783 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

@@ -72,7 +72,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">ovlytics</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.12</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.1.0</span>
       </span>
     </div>
 
@@ -116,7 +116,9 @@
   <span class='va'>dvw</span>,
   play_phase <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"Reception"</span>, <span class='st'>"Transition"</span><span class='op'>)</span>,
   attack_by <span class='op'>=</span> <span class='st'>"code"</span>,
-  exclude_attacks <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"PR"</span><span class='op'>)</span>
+  setter_position_by <span class='op'>=</span> <span class='st'>"rotation"</span>,
+  exclude_attacks <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"PR"</span><span class='op'>)</span>,
+  normalize_parameters <span class='op'>=</span> <span class='cn'>TRUE</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
@@ -132,11 +134,19 @@
     </tr>
     <tr>
       <th>attack_by</th>
-      <td><p>string: either "code" or "zone"</p></td>
+      <td><p>string: either "code", "zone", "tempo" or "setter call"</p></td>
+    </tr>
+    <tr>
+      <th>setter_position_by</th>
+      <td><p>string: either "rotation", or "front_back"</p></td>
     </tr>
     <tr>
       <th>exclude_attacks</th>
       <td><p>character: vector of attack codes to exclude</p></td>
+    </tr>
+    <tr>
+      <th>normalize_parameters</th>
+      <td><p>logical: reduce the prior parameter values</p></td>
     </tr>
     </table>
 
@@ -147,15 +157,17 @@
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='co'>## use this file to create the priors</span>
 <span class='va'>hist_dvw</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/pkg/ovdata/man/ovdata_example.html'>ovdata_example</a></span><span class='op'>(</span><span class='st'>"190301_kats_beds"</span><span class='op'>)</span>
-<span class='va'>history_t</span> <span class='op'>&lt;-</span> <span class='fu'>ov_create_history_table</span><span class='op'>(</span>dvw <span class='op'>=</span> <span class='va'>hist_dvw</span>, attack_by <span class='op'>=</span> <span class='st'>"zone"</span><span class='op'>)</span>
+<span class='va'>history_table</span> <span class='op'>&lt;-</span> <span class='fu'>ov_create_history_table</span><span class='op'>(</span>dvw <span class='op'>=</span> <span class='va'>hist_dvw</span>, attack_by <span class='op'>=</span> <span class='st'>"setter call"</span>, 
+                                   setter_position_by <span class='op'>=</span> <span class='st'>"front_back"</span><span class='op'>)</span>
 
 <span class='co'>## use it on another file (here, the same file for demo purposes)</span>
 <span class='co'>## usually the history would be from a reference set of previous matches</span>
 
 <span class='va'>dvw</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/pkg/ovdata/man/ovdata_example.html'>ovdata_example</a></span><span class='op'>(</span><span class='st'>"190301_kats_beds"</span><span class='op'>)</span>
-<span class='va'>setter</span> <span class='op'>&lt;-</span> <span class='fu'><a href='ov_simulate_setter_distribution.html'>ov_simulate_setter_distribution</a></span><span class='op'>(</span>dvw <span class='op'>=</span> <span class='va'>dvw</span>, play_phase <span class='op'>=</span> <span class='st'>"Reception"</span>, n_sim <span class='op'>=</span> <span class='fl'>500</span>,
-                                  attack_by <span class='op'>=</span> <span class='st'>"zone"</span>, attack_options <span class='op'>=</span> <span class='st'>"use_history"</span>,
-                                  history_table <span class='op'>=</span> <span class='va'>history_t</span><span class='op'>$</span><span class='va'>prior_table</span>, filter_sim <span class='op'>=</span> <span class='cn'>TRUE</span><span class='op'>)</span>
+<span class='va'>setter</span> <span class='op'>&lt;-</span> <span class='fu'><a href='ov_simulate_setter_distribution.html'>ov_simulate_setter_distribution</a></span><span class='op'>(</span>dvw <span class='op'>=</span> <span class='va'>dvw</span>, play_phase <span class='op'>=</span> <span class='st'>"Reception"</span>, n_sim <span class='op'>=</span> <span class='fl'>100</span>,
+                                  attack_by <span class='op'>=</span> <span class='st'>"setter call"</span>, attack_options <span class='op'>=</span> <span class='st'>"use_history"</span>,
+                                  setter_position_by <span class='op'>=</span> <span class='st'>"front_back"</span>,
+                                  history_table <span class='op'>=</span> <span class='va'>history_table</span>, filter_sim <span class='op'>=</span> <span class='cn'>TRUE</span><span class='op'>)</span>
 
 <span class='co'>## plot the results</span>
 <span class='fu'><a href='ov_plot_ssd.html'>ov_plot_ssd</a></span><span class='op'>(</span><span class='va'>setter</span>, overlay_set_number <span class='op'>=</span> <span class='cn'>TRUE</span><span class='op'>)</span>
