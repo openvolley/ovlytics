@@ -28,7 +28,7 @@ team_name_to_abbrev <- function(x, upper = FALSE) {
 #' system.time({
 #'   ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception",
 #'                                          n_sim = 100, attack_by = "setter call", 
-#'                                          setter_position_by = "front_back")
+#'                                          setter_position_by = "rotation")
 #' })
 #' @export
 ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Transition"), n_sim = 500, priors = list(name = "beta", par1 = 1, par2 = 1),
@@ -157,7 +157,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                 mode(rewards) <- "integer"
                 if (is.null(choice)) choice <- matrix(seq_len(nArms), ncol = nArms, nrow = duration, byrow = TRUE)
 
-                res_setter_position[res_sim_num == nS ] <- tableBB[,setter_position_by_var]
+                res_setter_position[res_sim_num == nS ] <- unlist(tableBB[,setter_position_by_var])
                 res_ts_pass_quality[res_sim_num == nS] <- tableBB$ts_pass_quality
                 res_point_id[res_sim_num == nS] <- tableBB$point_id
 

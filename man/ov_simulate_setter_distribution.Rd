@@ -52,7 +52,7 @@ dvw <- ovdata_example("190301_kats_beds")
 system.time({
   ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception",
                                          n_sim = 100, attack_by = "setter call", 
-                                         setter_position_by = "front_back")
+                                         setter_position_by = "rotation")
 })
 }
 \seealso{
