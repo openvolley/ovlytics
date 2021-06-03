@@ -157,10 +157,14 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                 mode(rewards) <- "integer"
                 if (is.null(choice)) choice <- matrix(seq_len(nArms), ncol = nArms, nrow = duration, byrow = TRUE)
 
-                res_setter_position[res_sim_num == nS ] <- unlist(tableBB[,setter_position_by_var])
-                res_ts_pass_quality[res_sim_num == nS] <- tableBB$ts_pass_quality
-                res_point_id[res_sim_num == nS] <- tableBB$point_id
+                #res_setter_position[res_sim_num == nS ] <- unlist(tableBB[,setter_position_by_var])
+                #res_ts_pass_quality[res_sim_num == nS] <- tableBB$ts_pass_quality
+                #res_point_id[res_sim_num == nS] <- tableBB$point_id
 
+                res_setter_position[res_sim_num == nS ] <- tableBB[[setter_position_by_var]]
+                res_ts_pass_quality[res_sim_num == nS] <- tableBB[["ts_pass_quality"]]
+                res_point_id[res_sim_num == nS] <- tableBB[["point_id"]]
+                
                 for (d in seq_len(duration)) {
                     choiceD <- na.omit(choice[d, ])
                     theta <- vapply(choiceD, function(x) rbeta(1, postPar[1, x], postPar[2, x]), FUN.VALUE = numeric(1), USE.NAMES = FALSE)
