@@ -3,8 +3,8 @@
 #' Note: analysis is done on the basis of attack actions, and simply assumes that the setter on court made the set.
 #'
 #' @param x data.frame: the `plays` data.frame as returned by [datavolley::read_dv()] or [peranavolley::pv_read()]
-#' @param setter_id string: (optional) the player ID of the setter to analyze (or provide `setter_name`). If neither `setter_id` nor `setter_name` are provided, all setters will be analyzed
-#' @param setter_name string: (optional) the name of the setter to analyze (ignored if `setter_id` is provided). If neither `setter_id` nor `setter_name` are provided, all setters will be analyzed
+#' @param setter_id string: (optional) the player ID of the setter to analyze (or provide `setter_name`). If neither `setter_id` nor `setter_name` are provided, all setters will be analyzed separately, and collated results returned
+#' @param setter_name string: (optional) the name of the setter to analyze (ignored if `setter_id` is provided). If neither `setter_id` nor `setter_name` are provided, all setters will be analyzed separately, and collated results returned
 #' @param exclude_attacks character: vector of attack codes to exclude
 #'
 #' @return A data.frame with columns "team", "setter_name", "setter_id", "player_name", "player_id", "category", "opportunities", "repeats", "repeat%"
@@ -27,18 +27,25 @@
 ov_setter_repetition <- function(x, setter_id, setter_name, exclude_attacks = c("PP", "PR", "P2")) {
     assert_that(is.data.frame(x))
     assert_that(all(c("home_setter_position", "visiting_setter_position", "team", "skill") %in% names(x)))
+    if (!"setter_id" %in% names(x)) x <- ov_augment_plays(x, "setters")
     if (missing(setter_id) || length(setter_id) < 1 || !nzchar(setter_id) || is.na(setter_id)) {
-        assert_that(is.string(setter_name), !is.na(setter_name), nzchar(setter_name))
-        setter_id <- distinct(x[x$player_name %eq% setter_name, c("player_id", "player_name")])
-        if (nrow(setter_id) == 1) {
-            setter_id <- setter_id$player_id
+        if (!missing(setter_name)) {
+            assert_that(is.string(setter_name), !is.na(setter_name), nzchar(setter_name))
+            setter_id <- distinct(x[x$player_name %eq% setter_name, c("player_id", "player_name")])
+            if (nrow(setter_id) == 1) {
+                setter_id <- setter_id$player_id
+            } else {
+                stop("setter_name '", setter_name, "' could not be resolved to a single player_id")
+            }
         } else {
-            stop("setter_name '", setter_name, "' could not be resolved to a single player_id")
+            ## do all setters separately and collate the results
+            all_sid <- unique(na.omit(x$setter_id))
+            return(bind_rows(lapply(all_sid, function(sid) ov_setter_repetition(x, setter_id = sid, exclude_attacks = exclude_attacks))))
         }
     }
     assert_that(is.string(setter_id), !is.na(setter_id), nzchar(setter_id))
     assert_that(length(exclude_attacks) < 1 || is.character(exclude_attacks))
-    ax <- dplyr::filter(ov_augment_plays(x, "setters"), .data$skill == "Attack" & !.data$attack_code %in% exclude_attacks)
+    ax <- dplyr::filter(x, .data$skill == "Attack" & !.data$attack_code %in% exclude_attacks)
     ## exclude PP, PR, P2 (and perhaps other) attacks here
 
     if (!missing(setter_id) || !missing(setter_name)) {
