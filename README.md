@@ -19,6 +19,10 @@ choice analysis).
 ## Installation
 
 ``` r
-## install.packages("remotes")
+install.packages("ovlytics", repos = "https://openvolley.r-universe.dev")
+
+## or
+
+## install.packages("remotes") ## if needed
 remotes::install_github("openvolley/ovlytics")
 ```
