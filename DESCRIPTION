@@ -1,6 +1,6 @@
 Package: ovlytics
 Title: Functions and Algorithms for Volleyball Analytics
-Version: 0.1.2
+Version: 0.1.3
 Authors@R: c(person("Ben", "Raymond", email = "ben@untan.gl", role = c("aut", "cre")),
              person("Adrien", "Ickowicz", role = "aut"),
              person("openvolley.org", role = "org"))
@@ -14,6 +14,7 @@ Imports:
     ggplot2,
     grid,
     gt,
+    MASS,
     methods,
     ovdata,
     paletteer,
