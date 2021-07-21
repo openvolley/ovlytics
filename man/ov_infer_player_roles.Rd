@@ -13,7 +13,7 @@ ov_infer_player_roles(
 )
 }
 \arguments{
-\item{x}{: a datavolley object (as returned by \code{\link[datavolley:dv_read]{datavolley::dv_read()}}), a list of datavolley objects, or the \code{plays} component of a datavolley object}
+\item{x}{: a datavolley object (as returned by \code{\link[datavolley:read_dv]{datavolley::dv_read()}}), a list of datavolley objects, or the \code{plays} component of a datavolley object}
 
 \item{target_team}{string or function: team to report on. If this is a function, it should return \code{TRUE} when passed the target team name}
 

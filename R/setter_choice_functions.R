@@ -734,7 +734,7 @@ ov_plot_history_table <- function(history_table, team, setter_id){
         dplyr::select(ht_tmp, dplyr::matches("setter_front_back"), dplyr::matches("setter_position"), dplyr::matches("start_zone"), dplyr::matches("attack_code"), dplyr::matches("set_code"), dplyr::matches("skill_type"))), .data[[{{ setter_position_by_var }}]], .data[[{{ attack_by_var }}]])
     
     ht <- if (packageVersion("dplyr") >= "1.0.0") {
-              dplyr::arrange(full_join(ht, all_combs), dplyr::across({{ setter_position_by_var }}), across({{ attack_by_var }}))
+              dplyr::arrange(full_join(ht, all_combs), dplyr::across({{ setter_position_by_var }}), dplyr::across({{ attack_by_var }}))
           } else {
               dplyr::arrange(full_join(ht, all_combs), .data[[setter_position_by_var]], .data[[attack_by_var]])
           }
