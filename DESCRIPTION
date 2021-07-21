@@ -1,6 +1,6 @@
 Package: ovlytics
 Title: Functions and Algorithms for Volleyball Analytics
-Version: 0.1.3
+Version: 0.1.4
 Authors@R: c(person("Ben", "Raymond", email = "ben@untan.gl", role = c("aut", "cre")),
              person("Adrien", "Ickowicz", role = "aut"),
              person("openvolley.org", role = "org"))
@@ -8,7 +8,7 @@ Description: Analytical functions for volleyball analytics, to be used in conjun
 Imports:
     assertthat,
     cowplot,
-    datavolley,
+    datavolley (>= 1.0.2),
     dplyr (>= 0.8.5),
     forcats,
     ggplot2,

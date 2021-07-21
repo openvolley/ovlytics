@@ -20,7 +20,7 @@ ov_simulate_setter_distribution(
 )
 }
 \arguments{
-\item{dvw}{string or datavolley: a datavolley object as returned by \code{\link[datavolley:read_dv]{datavolley::dv_read()}} or a path to datavolley file}
+\item{dvw}{string or datavolley: a datavolley object as returned by \code{\link[datavolley:dv_read]{datavolley::dv_read()}} or a path to datavolley file}
 
 \item{play_phase}{character: one or both of "Reception", "Transition"}
 
