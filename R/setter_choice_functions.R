@@ -59,7 +59,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
     # If setter call we need to propagate the setter call to the subsequent attack
     if(attack_by == "setter call"){
         data <- dplyr::mutate(data, 
-                                set_code = case_when(.data$skill == "Attack" & lag(.data$skill) == "Set" ~ lag(.data$set_code), 
+                                set_code = case_when(.data$skill == "Attack" & lag(.data$skill) == "Set" ~ paste0(lag(.data$set_code), lag(.data$set_type)), 
                                                          TRUE ~ .data$set_code), 
                                 set_description = case_when(.data$skill == "Attack" & lag(.data$skill) == "Set" ~ lag(.data$set_description), 
                                                             TRUE ~ .data$set_description)
@@ -458,29 +458,76 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
         
         attack_zones_sim <- mutate(attack_zones_sim, 
                                    rotation = forcats::fct_relevel(as.factor(as.character(.data$setter_position)), setter_rotation_levels),
-                                   attack_choice = forcats::fct_relevel(as.factor(as.character(.data$attack_choice)), levels(.data$attack_choice)))
-        attack_zones_actual <- mutate(attack_zones_actual,
-                                      skill_type = forcats::fct_relevel(as.factor(as.character(.data$set_code)), levels(.data$set_code)))
+                                   attack_choice = forcats::fct_relevel(as.factor(as.character(.data$attack_choice)), levels(.data$attack_choice)), 
+                                   start_zone = case_when(stringr::str_ends(attack_choice, "F") ~ 4, 
+                                                          stringr::str_ends(attack_choice, "C") ~ 3, 
+                                                          stringr::str_ends(attack_choice, "P") ~ 8, 
+                                                          stringr::str_ends(attack_choice, "B") & rotation %in% c("1", "6", "5", "back") ~ 2, 
+                                                          stringr::str_ends(attack_choice, "B") & rotation %in% c("2", "3", "4", "front")  ~ 9, 
+                                                          TRUE ~ NA_real_),
+                                   setter_call = stringr::str_trunc(as.character(attack_choice), 2, side = "right", ellipsis = ""), 
+                                   setter_call = case_when(setter_call == "NA" ~ "No Call", 
+                                                           TRUE ~ setter_call))
+        
+        attack_zones_sim <- mutate(cbind(attack_zones_sim, dv_xy(as.numeric(attack_zones_sim$start_zone), end = "lower")))
+        
+        
+        attack_zones_actual <- mutate(attack_zones_actual, start_zone = case_when(stringr::str_ends(set_code, "F") ~ 4, 
+                                                                                  stringr::str_ends(set_code, "C") ~ 3, 
+                                                                                  stringr::str_ends(set_code, "P") ~ 8, 
+                                                                                  stringr::str_ends(set_code, "B") & setter_position %in% c("1", "6", "5", "back") ~ 2, 
+                                                                                  stringr::str_ends(set_code, "B") & setter_position %in% c("2", "3", "4", "front")  ~ 9, 
+                                                                                  TRUE ~ NA_real_),
+                                      setter_call = stringr::str_trunc(as.character(set_code), 2, side = "right", ellipsis = ""), 
+                                      setter_call = case_when(setter_call == "NA" ~ "No Call", 
+                                                              TRUE ~ setter_call))
+        
+        attack_zones_actual <- cbind(attack_zones_actual, dv_xy(attack_zones_actual$start_zone, end = "lower"))
+        
         attack_zones_actual$rotation <- forcats::fct_relevel(as.factor(as.character(unlist(attack_zones_actual[,setter_position_by_var]))), setter_rotation_levels)
+        
+        calls_arrows = dplyr::filter(ssd$raw_data$meta$sets, start_coordinate > 0) 
+        calls_arrows = cbind(calls_arrows, 
+                             datavolley::dv_index2xy(calls_arrows$start_coordinate),
+                             datavolley::dv_index2xy(calls_arrows$mid_coordinate),
+                             datavolley::dv_index2xy(calls_arrows$end_coordinate))
+        
+        colnames(calls_arrows)[(ncol(calls_arrows)-5):ncol(calls_arrows)] <- c("start_x", "start_y","mid_x","mid_y", "end_x", "end_y")
+        
+        calls_arrows <- mutate(dplyr::rename(select(calls_arrows, .data$code, .data$start_x, .data$start_y,  .data$mid_x, .data$mid_y, .data$end_x, .data$end_y),
+                               "setter_call" = "code"))
+        
+        calls_arrows_f = NULL
+        for(srl in setter_rotation_levels){
+            calls_arrows_tmp <- mutate(calls_arrows, rotation = srl)
+            calls_arrows_f <- bind_rows(calls_arrows_f, calls_arrows_tmp)
+        }
+        calls_arrows_f$rotation <- forcats::fct_relevel(as.factor(calls_arrows_f$rotation), setter_rotation_levels)
         
         gActual <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_actual, .data$team == xx & .data$setter == yy),
-                          lab = paste0(round(.data$rate, 2) * 100, "%")), aes_string(x = "set_code"))  + 
-                geom_col(aes_string(y= "rate")) + facet_wrap(~rotation) +
-                scale_y_continuous(labels=scales::percent) + theme_bw()+
-                theme(axis.text.x = element_text(size = 9.5*0.75278, angle = 30, hjust = 1)) + 
-                ylab("Percent")+ xlab("")+
+                          lab = paste0(round(.data$rate, 2) * 100, "%")),
+                   aes_string(x = "x", y = "y")) + geom_tile(aes_string(fill = "rate")) + ggcourt(court = "lower", labels = "", base_size = font_size) +
+                scale_fill_gradient2(name = "Attack rate") + facet_grid(rotation~setter_call) + theme(legend.position = "none") +
+                geom_text(aes_string(x = "x", y ="y", label = "lab"), size = font_size/11*9.5*0.35278) + 
+                geom_segment(data=calls_arrows_f, aes_string(x = "mid_x", y = "mid_y", xend = "mid_x", yend = "mid_y"))+
+                 geom_segment(data=calls_arrows_f, aes_string(x = "mid_x", y = "mid_y", xend = "end_x", yend = "end_y"),
+                              arrow = arrow(length = unit(0.03, "npc"))) +
                 ggtitle(twrapf(paste0("Actual distribution - ", yy, " (", xx, ")")))
         })
+        
         gSim <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_sim, .data$team == xx & .data$setter == yy),
-                          lab = paste0(round(.data$rate, 2) * 100, "%")), aes_string(x = "attack_choice"))  + 
-                geom_col(aes_string(y= "rate")) + facet_wrap(~rotation) +
-                scale_y_continuous(labels=scales::percent) + theme_bw()+
-                theme(axis.text.x = element_text(size = 9.5*0.75278, angle = 30, hjust = 1)) + 
-                ylab("Percent")+ xlab("")+
-                ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")")))
+                          lab = paste0(round(.data$rate, 2) * 100, "%")),
+                   aes_string(x = "x", y = "y")) + geom_tile(aes_string(fill = "rate")) + ggcourt(court = "lower", labels = "", base_size = font_size) +
+                scale_fill_gradient2(name = "Attack rate") + facet_grid(rotation~setter_call) +
+                geom_text(aes_string(x = "x", y = "y", label = "lab"), size = font_size/11*9.5*0.35278) +
+                geom_segment(data=calls_arrows_f, aes_string(x = "mid_x", y = "mid_y", xend = "mid_x", yend = "mid_y"))+
+                geom_segment(data=calls_arrows_f, aes_string(x = "mid_x", y = "mid_y", xend = "end_x", yend = "end_y"),
+                             arrow = arrow(length = unit(0.03, "npc"))) +
+                theme(legend.position = "none") + ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")")))
         })
+        
     }
     wrap_plots(c(gActual, gSim), nrow = 2) + plot_layout(guides = "collect")
 }
@@ -626,7 +673,7 @@ ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition
     
     if(attack_by == "setter call"){
         data_game <- dplyr::mutate(data_game, 
-                              set_code = case_when(.data$skill == "Attack" & lag(.data$skill) == "Set" ~ lag(.data$set_code), 
+                              set_code = case_when(.data$skill == "Attack" & lag(.data$skill) == "Set" ~ paste0(lag(.data$set_code), lag(.data$set_type)), 
                                                    TRUE ~ .data$set_code), 
                               set_description = case_when(.data$skill == "Attack" & lag(.data$skill) == "Set" ~ lag(.data$set_description), 
                                                           TRUE ~ .data$set_description)
