@@ -9,7 +9,8 @@ ov_plot_sequence_distribution(
   label_setters_by = "id",
   font_size = 11,
   title_wrap = NA,
-  split_set = FALSE
+  split_set = FALSE,
+  output = "plot"
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ ov_plot_sequence_distribution(
 \item{title_wrap}{numeric: if non-\code{NA}, use \code{\link[=strwrap]{strwrap()}} to break the title into lines of this width}
 
 \item{split_set}{boolean: if \code{TRUE}, separate the distribution sequence by set}
+
+\item{output}{string: either "plot" or "list"}
 }
 \description{
 Plot a simulated setter distribution sequence

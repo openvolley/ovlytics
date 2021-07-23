@@ -28,7 +28,7 @@ team_name_to_abbrev <- function(x, upper = FALSE) {
 #' system.time({
 #'   ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception",
 #'                                          n_sim = 100, attack_by = "setter call", 
-#'                                          setter_position_by = "rotation")
+#'                                          setter_position_by = "front_back")
 #' })
 #' @export
 ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Transition"), n_sim = 500, priors = list(name = "beta", par1 = 1, par2 = 1),
@@ -122,7 +122,8 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                                                            "-",
                                                            .data$visiting_team_score, team_name_to_abbrev(.data$visiting_team)))
             }
-            tableBB <- dplyr::left_join(dplyr::select(tableBB, "set_number", "point_id", "score",{{ setter_position_by_var }}, "ts_pass_quality", {{ attack_by_var }}, "evaluation"), probTable, by = c({{ setter_position_by_var }}, "ts_pass_quality"))
+            tableBB <- dplyr::left_join(dplyr::select(tableBB, "set_number", "point_id", "score",{{ setter_position_by_var }}, "ts_pass_quality", {{ attack_by_var }}, "evaluation", "video_time"), 
+                                        probTable, by = c({{ setter_position_by_var }}, "ts_pass_quality"))
 
             choice <- matrix(seq_len(ncol(tableBB) - 7), ncol = (ncol(tableBB) - 7), nrow = nrow(tableBB), byrow = TRUE)
             choice[which(is.na(as.matrix(tableBB[, seq(8, ncol(tableBB), by = 1)])))] <- NA
@@ -347,7 +348,7 @@ ssd_set_setter_labels <- function(ssd, label_setters_by = "id") {
 #' @examples
 #' dvw <- ovdata_example("190301_kats_beds")
 #' setter <- ov_simulate_setter_distribution(dvw = dvw, play_phase = c("Reception", "Transition"),
-#'                                           n_sim = 100, attack_by = "code")
+#'                                           n_sim = 100, attack_by = "setter call")
 #' ov_plot_distribution(setter)
 #' @export
 ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, title_wrap = NA) {
@@ -471,7 +472,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
         
         attack_zones_sim <- mutate(cbind(attack_zones_sim, dv_xy(as.numeric(attack_zones_sim$start_zone), end = "lower")))
         
-        
+        if(setter_position_by_var == "setter_position"){
         attack_zones_actual <- mutate(attack_zones_actual, start_zone = case_when(stringr::str_ends(set_code, "F") ~ 4, 
                                                                                   stringr::str_ends(set_code, "C") ~ 3, 
                                                                                   stringr::str_ends(set_code, "P") ~ 8, 
@@ -481,7 +482,18 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
                                       setter_call = stringr::str_trunc(as.character(set_code), 2, side = "right", ellipsis = ""), 
                                       setter_call = case_when(setter_call == "NA" ~ "No Call", 
                                                               TRUE ~ setter_call))
-        
+        }
+        if(setter_position_by_var == "setter_front_back"){
+            attack_zones_actual <- mutate(attack_zones_actual, start_zone = case_when(stringr::str_ends(set_code, "F") ~ 4, 
+                                                                                      stringr::str_ends(set_code, "C") ~ 3, 
+                                                                                      stringr::str_ends(set_code, "P") ~ 8, 
+                                                                                      stringr::str_ends(set_code, "B") & setter_front_back %in% c("1", "6", "5", "back") ~ 2, 
+                                                                                      stringr::str_ends(set_code, "B") & setter_front_back %in% c("2", "3", "4", "front")  ~ 9, 
+                                                                                      TRUE ~ NA_real_),
+                                          setter_call = stringr::str_trunc(as.character(set_code), 2, side = "right", ellipsis = ""), 
+                                          setter_call = case_when(setter_call == "NA" ~ "No Call", 
+                                                                  TRUE ~ setter_call))
+        }
         attack_zones_actual <- cbind(attack_zones_actual, dv_xy(attack_zones_actual$start_zone, end = "lower"))
         
         attack_zones_actual$rotation <- forcats::fct_relevel(as.factor(as.character(unlist(attack_zones_actual[,setter_position_by_var]))), setter_rotation_levels)
@@ -540,6 +552,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
 #' @param font_size numeric: font size
 #' @param title_wrap numeric: if non-`NA`, use [strwrap()] to break the title into lines of this width
 #' @param split_set boolean: if `TRUE`, separate the distribution sequence by set
+#' @param output string: either "plot" or "list"
 #'
 #' @examples
 #' dvw <- ovdata_example("190301_kats_beds")
@@ -548,7 +561,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
 #' ov_plot_sequence_distribution(ssd)
 #'
 #' @export
-ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_size = 11, title_wrap = NA, split_set = FALSE) {
+ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_size = 11, title_wrap = NA, split_set = FALSE, output = "plot") {
     attack_by_var <- ssd$attack_by_var
     setter_position_by_var <- ssd$setter_position_by_var
     
@@ -573,28 +586,40 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
     
     cd_bandit$ts_pass_quality <- forcats::fct_relevel(as.factor(as.character(unlist(cd_bandit$ts_pass_quality))), c("Poor", "OK", "Good", "Perfect"))
     
+    cd_bandit$Probability <- ggplot2::cut_interval(cd_bandit$Probability,4)
+    
     setter_team <- distinct(dplyr::select(cd_setter, "team", "setter"))
     gCondDist <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
         g1 <- ggplot(data = dplyr::filter(cd_setter, .data$team == xx, .data$setter == yy), aes_string(x = "time", y = "attack_choice")) +
-            geom_tile(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy), aes_string(x = "time + 0.5", y = "attack_choice_b", fill = "Probability"), alpha = 0.75) +
+            geom_tile(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy), aes_string(x = "time + 0.5", y = "attack_choice_b", fill ="Probability"), alpha = 0.75) +
             geom_step(group = 1) +
             geom_point(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy), aes_string(x = "time + 0.5", y = "choice_bandit"), col = "white", size = 1) +
             geom_point(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy & as.character(.data$attack_choice) == .data$least_likely_choice),
                        aes_string(x = "time + 0.5", y = "least_likely_choice"), col = "red", size = 1) +
-            theme_bw(base_size = font_size) + scale_fill_continuous(na.value = NA, limits = c(0, 1)) +
+            theme_bw(base_size = font_size) + 
+            #scale_fill_continuous(na.value = NA, limits = c(0, 1)) +
             theme(legend.position = "none") + labs(x = "Game history", y = "Attack choice") +
+            scale_fill_brewer(palette = "OrRd")+
             ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")"))) 
 
+        cd_setter[[setter_position_by_var]] <- stringr::str_trunc(cd_setter[[setter_position_by_var]],1 ,side = "right", ellipsis = "")
+        
         g2 <- ggplot(data = dplyr::filter(cd_setter, .data$team == xx, .data$setter == yy), aes_string(x = "time")) +
                 geom_tile(aes_string(fill = "ts_pass_quality", y ="1")) + 
-            geom_text(aes_string(y="1", label = "setter_position"), size = 2)+
+            geom_text(aes_string(y="1", label = setter_position_by_var), size = 2)+
             scale_fill_brewer()+
             theme_void() + theme(legend.position = 'none')
 
-            if(split_set) g <- (g1  + facet_wrap(~set_number, scales = "free_x")) / (g2 + facet_wrap(~set_number, scales = "free_x")) else g <- g1 / g2 + patchwork::plot_layout(heights = c(8, 1))
-            g
+            #if(split_set) g <- (g1  + facet_wrap(~set_number, scales = "free_x")) / (g2 + facet_wrap(~set_number, scales = "free_x")) else g <- g1 / g2 + patchwork::plot_layout(heights = c(8, 1))
+        if(output == "list"){
+            g<- list(g1,g2)}
+        if(output == "plot"){
+            if(split_set) g <- (g1  + facet_wrap(~set_number, scales = "free_x")) / (g2 + facet_wrap(~set_number, scales = "free_x")) else g <- g1 / g2 + patchwork::plot_layout(heights = c(8, 1)) 
+        }
+        g
     })
-    wrap_plots(c(gCondDist)) + plot_layout(guides = "collect")
+    if(output == "list"){return(gCondDist)}
+    if(output == "plot"){return(wrap_plots(c(gCondDist)) + plot_layout(guides = "collect"))}
 }
 
 
