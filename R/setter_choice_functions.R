@@ -461,46 +461,43 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
         attack_zones_sim <- mutate(attack_zones_sim, 
                                    rotation = forcats::fct_relevel(as.factor(as.character(.data$setter_position)), setter_rotation_levels),
                                    attack_choice = forcats::fct_relevel(as.factor(as.character(.data$attack_choice)), levels(.data$attack_choice)), 
-                                   start_zone = case_when(stringr::str_ends(attack_choice, "F") ~ 4, 
-                                                          stringr::str_ends(attack_choice, "C") ~ 3, 
-                                                          stringr::str_ends(attack_choice, "P") ~ 8, 
-                                                          stringr::str_ends(attack_choice, "B") & rotation %in% c("1", "6", "5", "back") ~ 2, 
-                                                          stringr::str_ends(attack_choice, "B") & rotation %in% c("2", "3", "4", "front")  ~ 9, 
-                                                          TRUE ~ NA_real_),
-                                   setter_call = stringr::str_trunc(as.character(attack_choice), 2, side = "right", ellipsis = ""), 
-                                   setter_call = case_when(setter_call == "NA" ~ "No Call", 
-                                                           TRUE ~ setter_call))
+                                   start_zone = case_when(stringr::str_ends(.data$attack_choice, "F") ~ 4, 
+                                                          stringr::str_ends(.data$attack_choice, "C") ~ 3, 
+                                                          stringr::str_ends(.data$attack_choice, "P") ~ 8, 
+                                                          stringr::str_ends(.data$attack_choice, "B") & .data$rotation %in% c("1", "6", "5", "back") ~ 2, 
+                                                          stringr::str_ends(.data$attack_choice, "B") & .data$rotation %in% c("2", "3", "4", "front")  ~ 9),
+                                   setter_call = stringr::str_trunc(as.character(.data$attack_choice), 2, side = "right", ellipsis = ""), 
+                                   setter_call = case_when(.data$setter_call == "NA" ~ "No Call", 
+                                                           TRUE ~ .data$setter_call))
         
         attack_zones_sim <- mutate(cbind(attack_zones_sim, dv_xy(as.numeric(attack_zones_sim$start_zone), end = "lower")))
         
         if(setter_position_by_var == "setter_position"){
-        attack_zones_actual <- mutate(attack_zones_actual, start_zone = case_when(stringr::str_ends(set_code, "F") ~ 4, 
-                                                                                  stringr::str_ends(set_code, "C") ~ 3, 
-                                                                                  stringr::str_ends(set_code, "P") ~ 8, 
-                                                                                  stringr::str_ends(set_code, "B") & setter_position %in% c("1", "6", "5", "back") ~ 2, 
-                                                                                  stringr::str_ends(set_code, "B") & setter_position %in% c("2", "3", "4", "front")  ~ 9, 
-                                                                                  TRUE ~ NA_real_),
-                                      setter_call = stringr::str_trunc(as.character(set_code), 2, side = "right", ellipsis = ""), 
-                                      setter_call = case_when(setter_call == "NA" ~ "No Call", 
-                                                              TRUE ~ setter_call))
+        attack_zones_actual <- mutate(attack_zones_actual, start_zone = case_when(stringr::str_ends(.data$set_code, "F") ~ 4, 
+                                                                                  stringr::str_ends(.data$set_code, "C") ~ 3, 
+                                                                                  stringr::str_ends(.data$set_code, "P") ~ 8, 
+                                                                                  stringr::str_ends(.data$set_code, "B") & .data$setter_position %in% c("1", "6", "5", "back") ~ 2, 
+                                                                                  stringr::str_ends(.data$set_code, "B") & .data$setter_position %in% c("2", "3", "4", "front")  ~ 9),
+                                      setter_call = stringr::str_trunc(as.character(.data$set_code), 2, side = "right", ellipsis = ""), 
+                                      setter_call = case_when(.data$setter_call == "NA" ~ "No Call", 
+                                                              TRUE ~ .data$setter_call))
         }
         if(setter_position_by_var == "setter_front_back"){
-            attack_zones_actual <- mutate(attack_zones_actual, start_zone = case_when(stringr::str_ends(set_code, "F") ~ 4, 
-                                                                                      stringr::str_ends(set_code, "C") ~ 3, 
-                                                                                      stringr::str_ends(set_code, "P") ~ 8, 
-                                                                                      stringr::str_ends(set_code, "B") & setter_front_back %in% c("1", "6", "5", "back") ~ 2, 
-                                                                                      stringr::str_ends(set_code, "B") & setter_front_back %in% c("2", "3", "4", "front")  ~ 9, 
-                                                                                      TRUE ~ NA_real_),
-                                          setter_call = stringr::str_trunc(as.character(set_code), 2, side = "right", ellipsis = ""), 
-                                          setter_call = case_when(setter_call == "NA" ~ "No Call", 
-                                                                  TRUE ~ setter_call))
+            attack_zones_actual <- mutate(attack_zones_actual, start_zone = case_when(stringr::str_ends(.data$set_code, "F") ~ 4, 
+                                                                                      stringr::str_ends(.data$set_code, "C") ~ 3, 
+                                                                                      stringr::str_ends(.data$set_code, "P") ~ 8, 
+                                                                                      stringr::str_ends(.data$set_code, "B") & .data$setter_front_back %in% c("1", "6", "5", "back") ~ 2, 
+                                                                                      stringr::str_ends(.data$set_code, "B") & .data$setter_front_back %in% c("2", "3", "4", "front")  ~ 9),
+                                          setter_call = stringr::str_trunc(as.character(.data$set_code), 2, side = "right", ellipsis = ""), 
+                                          setter_call = case_when(.data$setter_call == "NA" ~ "No Call", 
+                                                                  TRUE ~ .data$setter_call))
         }
         attack_zones_actual <- cbind(attack_zones_actual, dv_xy(attack_zones_actual$start_zone, end = "lower"))
         
         attack_zones_actual$rotation <- forcats::fct_relevel(as.factor(as.character(unlist(attack_zones_actual[,setter_position_by_var]))), setter_rotation_levels)
         
-        calls_arrows = dplyr::filter(ssd$raw_data$meta$sets, start_coordinate > 0) 
-        calls_arrows = cbind(calls_arrows, 
+        calls_arrows <- dplyr::filter(ssd$raw_data$meta$sets, .data$start_coordinate > 0) 
+        calls_arrows <- cbind(calls_arrows, 
                              datavolley::dv_index2xy(calls_arrows$start_coordinate),
                              datavolley::dv_index2xy(calls_arrows$mid_coordinate),
                              datavolley::dv_index2xy(calls_arrows$end_coordinate))
@@ -510,7 +507,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
         calls_arrows <- mutate(dplyr::rename(select(calls_arrows, .data$code, .data$start_x, .data$start_y,  .data$mid_x, .data$mid_y, .data$end_x, .data$end_y),
                                "setter_call" = "code"))
         
-        calls_arrows_f = NULL
+        calls_arrows_f <- NULL
         for(srl in setter_rotation_levels){
             calls_arrows_tmp <- mutate(calls_arrows, rotation = srl)
             calls_arrows_f <- bind_rows(calls_arrows_f, calls_arrows_tmp)
