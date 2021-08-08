@@ -122,13 +122,14 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                                                            "-",
                                                            .data$visiting_team_score, team_name_to_abbrev(.data$visiting_team)))
             }
+            
             tableBB <- dplyr::left_join(dplyr::select(tableBB, "set_number", "point_id", "score",{{ setter_position_by_var }}, "ts_pass_quality", {{ attack_by_var }}, "evaluation", "video_time"), 
                                         probTable, by = c({{ setter_position_by_var }}, "ts_pass_quality"))
 
-            choice <- matrix(seq_len(ncol(tableBB) - 7), ncol = (ncol(tableBB) - 7), nrow = nrow(tableBB), byrow = TRUE)
-            choice[which(is.na(as.matrix(tableBB[, seq(8, ncol(tableBB), by = 1)])))] <- NA
+            choice <- matrix(seq_len(ncol(tableBB) - 8), ncol = (ncol(tableBB) - 8), nrow = nrow(tableBB), byrow = TRUE)
+            choice[which(is.na(as.matrix(tableBB[, seq(9, ncol(tableBB), by = 1)])))] <- NA
 
-            probs <- as.matrix(tableBB[, seq(8, ncol(tableBB), by = 1)])
+            probs <- as.matrix(tableBB[, seq(9, ncol(tableBB), by = 1)])
             probs[is.na(probs)] <- 0
 
             duration <- nrow(tableBB)
