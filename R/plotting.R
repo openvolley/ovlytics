@@ -59,6 +59,14 @@
 #'
 #' @export
 ov_heatmap_kde <- function(x, y, N = NULL, resolution = "coordinates", bw, n, court = "full", auto_flip = FALSE) {
+    dokde <- function(x, y, bw, n, lims) {
+        temp <- MASS::kde2d(x, y, h = bw, n = n, lims = lims)
+        out <- as.data.frame(expand.grid(x = temp$x, y = temp$y))
+        out$density <- as.vector(temp$z)
+        ## normalize
+        out$density <- out$density / max(out$density, na.rm = TRUE)
+        out
+    }
     assert_that(is.string(resolution))
     resolution <- tolower(resolution)
     if (!resolution %in% c("coordinates", "subzones")) stop("heatmaps can only be generated for coordinates or subzones")
@@ -84,7 +92,7 @@ ov_heatmap_kde <- function(x, y, N = NULL, resolution = "coordinates", bw, n, co
                 if (length(Ncol) == 1) colnames(x)[Ncol] <- "N"
             }
         } else {
-            x$N <- 1L
+            x$N <- rep(1L, nrow(x))
         }
         if (!all(c("x", "y", "N") %in% colnames(x))) stop("could not figure out x, y, N columns")
         xy <- x
@@ -114,19 +122,18 @@ ov_heatmap_kde <- function(x, y, N = NULL, resolution = "coordinates", bw, n, co
     if (missing(n) || length(n) != 2 || any(is.na(n) | is.infinite(n))) {
         n <- c(60, round((ymax - ymin) / 3.5 * 60))
     }
-    if (packageVersion("dplyr") < "1.0.0") {
-        dplyr::do(xy, dokde(.data$x, .data$y, bw = bw, n = n, lims = c(0, 4, ymin, ymax)))
-    } else {
-        dplyr::summarize(xy, dokde(.data$x, .data$y, bw = bw, n = n, lims = c(0, 4, ymin, ymax)))
+    ## now calculate kde per group
+    ## dplyr::do(xy, dokde(.data$x, .data$y, bw = bw, n = n, lims = c(0, 4, ymin, ymax)))
+    ## verbose code to avoid use of dplyr::do or summarize
+    gind <- dplyr::group_indices(xy)
+    gkey <- dplyr::group_keys(xy)
+    out <- bind_rows(lapply(seq_len(dplyr::n_groups(xy)), function(grpnum) {
+        this <- xy[gind %eq% grpnum, , drop = FALSE]
+        bind_cols(gkey[grpnum, , drop = FALSE], dokde(this$x, this$y, bw = bw, n = n, lims = c(0, 4, ymin, ymax)))
+    }))
+    if (dplyr::n_groups(xy) > 1) {
+        out <- dplyr::group_by_at(out, dplyr::group_vars(xy))
     }
-}
-
-dokde <- function(x, y, bw, n, lims) {
-    temp <- MASS::kde2d(x, y, h = bw, n = n, lims = lims)
-    out <- as.data.frame(expand.grid(x = temp$x, y = temp$y))
-    out$density <- as.vector(temp$z)
-    ## normalize
-    out$density <- out$density / max(out$density, na.rm = TRUE)
     out
 }
 
