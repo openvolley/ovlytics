@@ -129,7 +129,7 @@ ov_heatmap_kde <- function(x, y, N = NULL, resolution = "coordinates", bw, n, co
     gkey <- dplyr::group_keys(xy)
     out <- bind_rows(lapply(seq_len(dplyr::n_groups(xy)), function(grpnum) {
         this <- xy[gind %eq% grpnum, , drop = FALSE]
-        bind_cols(gkey[grpnum, , drop = FALSE], dokde(this$x, this$y, bw = bw, n = n, lims = c(0, 4, ymin, ymax)))
+        cbind(gkey[grpnum, , drop = FALSE], dokde(this$x, this$y, bw = bw, n = n, lims = c(0, 4, ymin, ymax)))
     }))
     if (dplyr::n_groups(xy) > 1) {
         out <- dplyr::group_by_at(out, dplyr::group_vars(xy))
