@@ -8,7 +8,7 @@
 #' @importFrom cowplot plot_grid
 #' @importFrom datavolley dv_index2xy dv_flip_xy dv_read dv_xy ggcourt home_team plays visiting_team
 #' @importFrom dplyr %>% bind_cols bind_rows case_when distinct everything filter full_join group_by lag lead left_join mutate n pull row_number select tibble ungroup slice matches arrange rename
-#' @importFrom ggplot2 aes_string aes arrow facet_wrap geom_label geom_line geom_point geom_ribbon geom_segment geom_step geom_text geom_tile geom_vline ggplot ggtitle labs scale_fill_brewer scale_fill_continuous scale_fill_gradient2 scale_size theme theme_bw geom_col scale_y_continuous element_text ylab xlab ylim geom_area theme_void facet_grid
+#' @importFrom ggplot2 aes_string aes arrow facet_wrap geom_label geom_line geom_point geom_ribbon geom_segment geom_step geom_text geom_tile geom_vline ggplot ggtitle labs scale_colour_manual scale_fill_brewer scale_fill_continuous scale_fill_gradient2 scale_size theme theme_bw geom_col scale_y_continuous element_text ylab xlab ylim geom_area theme_void facet_grid
 #' @importFrom grid arrow unit
 #' @importFrom gt gt fmt_missing data_color cols_align
 #' @importFrom methods as

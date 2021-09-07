@@ -32,7 +32,8 @@ Plot a simulated setter distribution sequence
 \examples{
 dvw <- ovdata_example("190301_kats_beds")
 ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = c("Reception"),
-                                       n_sim = 100, attack_by = "zone")
+                                       n_sim = 100, attack_by = "zone",
+                                       setter_position_by = "front_back")
 ov_plot_sequence_distribution(ssd)
 
 }

@@ -35,7 +35,7 @@ Create a prior table from a dvw or a directory of dvw files
 \examples{
 ## use this file to create the priors
 hist_dvw <- ovdata_example("190301_kats_beds")
-history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "setter call", 
+history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "setter call",
                                    setter_position_by = "front_back")
 
 ## use it on another file (here, the same file for demo purposes)
