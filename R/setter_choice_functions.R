@@ -599,13 +599,11 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
             geom_tile(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy), aes_string(x = "time + 0.5", y = "attack_choice_b", fill ="Probability"), alpha = 0.75, show.legend = FALSE) +
             geom_step(group = 1) +
             geom_point(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy), aes_string(x = "time + 0.5", y = "choice_bandit"), col = "white", size = 1) +
-            #geom_point(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy & as.character(.data$attack_choice) == .data$least_likely_choice),
-            #           aes_string(x = "time + 0.5", y = "least_likely_choice"), col = "red", size = 1) +
             geom_point(data = cd_quality, aes_string(x = "time + 0.5", y = "attack_choice", col = "choice_quality"), size = 1) +
             theme_bw(base_size = font_size) +
             #scale_fill_continuous(na.value = NA, limits = c(0, 1)) +
             theme(legend.position = "bottom") + labs(x = "Game history", y = "Attack choice") +
-            scale_colour_manual("Option", values = c("blue", "red")) +
+            scale_colour_manual("Option", values = c("blue", "darkred")) +
             scale_fill_brewer(palette = "OrRd") +
             ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")")))
 
