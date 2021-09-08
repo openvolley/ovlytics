@@ -8,7 +8,8 @@ ov_plot_distribution(
   ssd,
   label_setters_by = "id",
   font_size = 11,
-  title_wrap = NA
+  title_wrap = NA,
+  output = "plot"
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ ov_plot_distribution(
 \item{font_size}{numeric: font size}
 
 \item{title_wrap}{numeric: if non-\code{NA}, use \code{\link[=strwrap]{strwrap()}} to break the title into lines of this width}
+
+\item{output}{string: either "plot" or "list"}
 }
 \description{
 Court plot of a real and simulated setter distribution

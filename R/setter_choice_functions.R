@@ -345,6 +345,7 @@ ssd_set_setter_labels <- function(ssd, label_setters_by = "id") {
 #' @param label_setters_by string: either "id" or "name"
 #' @param font_size numeric: font size
 #' @param title_wrap numeric: if non-`NA`, use [strwrap()] to break the title into lines of this width
+#' @param output string: either "plot" or "list"
 #'
 #' @examples
 #' dvw <- ovdata_example("190301_kats_beds")
@@ -352,7 +353,8 @@ ssd_set_setter_labels <- function(ssd, label_setters_by = "id") {
 #'                                           n_sim = 100, attack_by = "code")
 #' ov_plot_distribution(setter)
 #' @export
-ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, title_wrap = NA) {
+ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, title_wrap = NA, output = "plot") {
+    output <- match.arg(output, c("list", "plot"))
     ssd <- ssd_set_setter_labels(ssd, label_setters_by = label_setters_by)
     twrapf <- if (is.na(title_wrap)) function(z) z else function(z) paste0(strwrap(z, title_wrap), collapse = "\n")
     attack_by_var <- ssd$attack_by_var
@@ -539,7 +541,11 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
         })
     
     }
-    wrap_plots(c(gActual, gSim), nrow = 2) + plot_layout(guides = "collect")
+    if (output == "plot") {
+        wrap_plots(c(gActual, gSim), nrow = 2) + plot_layout(guides = "collect")
+    } else {
+        list(actual = gActual, sim = gSim)
+    }
 }
 
 
@@ -561,6 +567,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
 #'
 #' @export
 ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_size = 11, title_wrap = NA, split_set = FALSE, output = "plot") {
+    output <- match.arg(output, c("list", "plot"))
     attack_by_var <- ssd$attack_by_var
     setter_position_by_var <- ssd$setter_position_by_var
 
@@ -615,13 +622,15 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
             scale_fill_brewer()+
             theme_void() + theme(legend.position = 'none')
 
-            #if(split_set) g <- (g1  + facet_wrap(~set_number, scales = "free_x")) / (g2 + facet_wrap(~set_number, scales = "free_x")) else g <- g1 / g2 + patchwork::plot_layout(heights = c(8, 1))
-        if(output == "list"){
-            g<- list(g1,g2)}
-        if(output == "plot"){
-            if(split_set) g <- (g1  + facet_wrap(~set_number, scales = "free_x")) / (g2 + facet_wrap(~set_number, scales = "free_x")) else g <- g1 / g2 + patchwork::plot_layout(heights = c(8, 1))
+        if (output == "list") {
+            list(g1, g2)
+        } else {
+            if (split_set) {
+                (g1  + facet_wrap(~set_number, scales = "free_x")) / (g2 + facet_wrap(~set_number, scales = "free_x"))
+            } else {
+                g1 / g2 + patchwork::plot_layout(heights = c(8, 1))
+            }
         }
-        g
     })
 
     dfCondDist <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
