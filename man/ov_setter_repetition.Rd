@@ -8,7 +8,9 @@ ov_setter_repetition(
   x,
   setter_id,
   setter_name,
-  exclude_attacks = c("PP", "PR", "P2")
+  exclude_attacks = c("PP", "PR", "P2"),
+  exclude_negative_reception = TRUE,
+  exclude_highballs = FALSE
 )
 }
 \arguments{
@@ -19,6 +21,10 @@ ov_setter_repetition(
 \item{setter_name}{string: (optional) the name of the setter to analyze (ignored if \code{setter_id} is provided). If neither \code{setter_id} nor \code{setter_name} are provided, all setters will be analyzed separately, and collated results returned}
 
 \item{exclude_attacks}{character: vector of attack codes to exclude}
+
+\item{exclude_negative_reception}{logical: if \code{TRUE}, exclude attacks following poor reception (likely to be out-of-system and therefore might not represent attacks on which the setter had genuine options)}
+
+\item{exclude_highballs}{logical: if \code{TRUE}, exclude highball attacks (likely to be out-of-system and therefore might not represent attacks on which the setter had genuine options)}
 }
 \value{
 A data.frame with columns "team", "setter_name", "setter_id", "player_name", "player_id", "category", "opportunities", "repeats", "repeat\%"

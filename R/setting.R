@@ -6,6 +6,8 @@
 #' @param setter_id string: (optional) the player ID of the setter to analyze (or provide `setter_name`). If neither `setter_id` nor `setter_name` are provided, all setters will be analyzed separately, and collated results returned
 #' @param setter_name string: (optional) the name of the setter to analyze (ignored if `setter_id` is provided). If neither `setter_id` nor `setter_name` are provided, all setters will be analyzed separately, and collated results returned
 #' @param exclude_attacks character: vector of attack codes to exclude
+#' @param exclude_negative_reception logical: if `TRUE`, exclude attacks following poor reception (likely to be out-of-system and therefore might not represent attacks on which the setter had genuine options)
+#' @param exclude_highballs logical: if `TRUE`, exclude highball attacks (likely to be out-of-system and therefore might not represent attacks on which the setter had genuine options)
 #'
 #' @return A data.frame with columns "team", "setter_name", "setter_id", "player_name", "player_id", "category", "opportunities", "repeats", "repeat%"
 #'
@@ -24,10 +26,10 @@
 #'     labs(x = NULL, y = "Repeat percentage")
 #'
 #' @export
-ov_setter_repetition <- function(x, setter_id, setter_name, exclude_attacks = c("PP", "PR", "P2")) {
+ov_setter_repetition <- function(x, setter_id, setter_name, exclude_attacks = c("PP", "PR", "P2"), exclude_negative_reception = TRUE, exclude_highballs = FALSE) {
     assert_that(is.data.frame(x))
     assert_that(all(c("home_setter_position", "visiting_setter_position", "team", "skill") %in% names(x)))
-    if (!"setter_id" %in% names(x)) x <- ov_augment_plays(x, "setters")
+    if (!"setter_id" %in% names(x) || isTRUE(exclude_negative_reception)) x <- ov_augment_plays(x, c("touch_summaries", "setters"))
     if (missing(setter_id) || length(setter_id) < 1 || !nzchar(setter_id) || is.na(setter_id)) {
         if (!missing(setter_name)) {
             assert_that(is.string(setter_name), !is.na(setter_name), nzchar(setter_name))
@@ -40,19 +42,29 @@ ov_setter_repetition <- function(x, setter_id, setter_name, exclude_attacks = c(
         } else {
             ## do all setters separately and collate the results
             all_sid <- unique(na.omit(x$setter_id))
-            return(bind_rows(lapply(all_sid, function(sid) ov_setter_repetition(x, setter_id = sid, exclude_attacks = exclude_attacks))))
+            return(bind_rows(lapply(all_sid, function(sid) ov_setter_repetition(x, setter_id = sid, exclude_attacks = exclude_attacks, exclude_negative_reception = exclude_negative_reception, exclude_highballs = exclude_highballs))))
         }
     }
     assert_that(is.string(setter_id), !is.na(setter_id), nzchar(setter_id))
     assert_that(length(exclude_attacks) < 1 || is.character(exclude_attacks))
-    ax <- dplyr::filter(x, .data$skill == "Attack" & !.data$attack_code %in% exclude_attacks)
+    assert_that(is.flag(exclude_highballs), !is.na(exclude_highballs))
+    assert_that(is.flag(exclude_negative_reception), !is.na(exclude_negative_reception))
+
+    x <- mutate(x, attack_setter_id = case_when(.data$skill == "Attack" & lag(.data$skill) == "Set" & lag(.data$team) == .data$team ~ lag(.data$player_id)))
     ## exclude PP, PR, P2 (and perhaps other) attacks here
+    ax <- dplyr::filter(x, .data$skill == "Attack" & !.data$attack_code %in% exclude_attacks & !.data$setter_id == .data$player_id)
+    if (isTRUE(exclude_highballs)) ax <- dplyr::filter(ax, !grepl("High ball", .data$skill_type))
+    if (isTRUE(exclude_negative_reception)) ax <- dplyr::filter(ax, !(.data$phase %eq% "Reception" & .data$ts_pass_quality %eq% "Poor"))
 
-    if (!missing(setter_id) || !missing(setter_name)) {
-        target_sid <- setter_id
-        ax <- dplyr::filter(ax, .data$setter_id %in% target_sid)
+    ## filter to setter on court
+    target_sid <- setter_id
+    ax <- dplyr::filter(ax, .data$setter_id %in% target_sid)
+    ## also exclude sets not actually made by this setter, if sets have been scouted
+    ax <- dplyr::filter(ax, is.na(.data$attack_setter_id) | .data$attack_setter_id == target_sid)
+    if (nrow(ax) < 1) {
+        warning("no data for setter ID ", target_sid)
+        return(NULL)
     }
-
     ## augment setter_name
     sidn <- dplyr::rename(distinct(x[, c("team_id", "player_id", "player_name")]), setter_id = "player_id", setter_name = "player_name")
     temp <- nrow(ax)
