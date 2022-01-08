@@ -50,8 +50,8 @@ ov_augment_plays <- function(x, to_add = c("receiving_team", "touch_summaries", 
         x <- augment_followed_cols(x)
     }
 
-    if ("setters" %in% to_add && (!all(c("home_setter_id", "visiting_setter_id", "setter_id", "setter_position") %in% names(x)) || !use_existing)) {
-        x <- x[, setdiff(names(x), c("home_setter_id", "visiting_setter_id", "setter_id", "setter_position"))]
+    if ("setters" %in% to_add && (!all(c("home_setter_id", "visiting_setter_id", "setter_id", "setter_position", "setter_front_back") %in% names(x)) || !use_existing)) {
+        x <- x[, setdiff(names(x), c("home_setter_id", "visiting_setter_id", "setter_id", "setter_position", "setter_front_back"))]
         x <- mutate(x, home_setter_id = case_when(.data$home_setter_position == 1 ~ .data$home_player_id1,
                                                   .data$home_setter_position == 2 ~ .data$home_player_id2,
                                                   .data$home_setter_position == 3 ~ .data$home_player_id3,
