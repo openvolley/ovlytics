@@ -19,7 +19,9 @@ choice analysis).
 ## Installation
 
 ``` r
-install.packages("ovlytics", repos = "https://openvolley.r-universe.dev")
+options(repos = c(openvolley = "https://openvolley.r-universe.dev",
+                  CRAN = "https://cloud.r-project.org"))
+install.packages("ovlytics")
 
 ## or
 
