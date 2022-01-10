@@ -10,3 +10,10 @@ most_common_value <- function(x, na.rm=FALSE) {
     }
     ux[which.max(tabulate(match(x, ux)))]
 }
+
+## division, avoiding div by 0 warnings (return NA not NaN)
+`%/n/%` <- function(x, y) ifelse(abs(y) < 1e-09, NA_real_, x/y)
+
+## convenience shortcuts
+mean_narm <- function(...) mean(..., na.rm = TRUE)
+sum_narm <- function(...) sum(..., na.rm = TRUE)

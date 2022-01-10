@@ -2,7 +2,7 @@
 #'
 #' @param x data.frame: the `plays` data.frame as returned by [datavolley::read_dv()] or [peranavolley::pv_read()]
 #' @param to_add character: columns to add
-#' - "receiving_team" adds the receiving team name
+#' - "receiving_team" adds the columns "receiving_team" (team name) and "receiving_team_id"
 #' - "touch_summaries" adds a number of columns named "ts_*" that summarize a team touch (e.g. columns "ts_pass_quality", "ts_pass_evaluation_code" give the pass quality and pass evaluation code of the reception or dig associated with a given team touch)
 #' - "followed" adds the columns "followed_timeout", "followed_technical_timeout", and "followed_sub"
 #' - "setters" adds the columns "home_setter_id", "visiting_setter_id" (the player IDs of the home and visiting setter on court), and "setter_id", "setter_position", and "setter_front_back" (the player ID and position of the setter from the team performing the current action)
@@ -20,9 +20,11 @@ ov_augment_plays <- function(x, to_add = c("receiving_team", "touch_summaries", 
         warning("unrecognized 'to_add' values, ignoring: ", paste0(setdiff(to_add, known_to_add)))
     }
 
-    if ("receiving_team" %in% to_add && (!"receiving_team" %in% names(x) || !use_existing)) {
+    if ("receiving_team" %in% to_add && (!all(c("receiving_team", "receiving_team_id") %in% names(x)) || !use_existing)) {
         x <- dplyr::mutate(x, receiving_team = case_when(.data$serving_team %eq% .data$home_team ~ .data$visiting_team,
-                                                  .data$serving_team %eq% .data$visiting_team ~ .data$home_team))
+                                                         .data$serving_team %eq% .data$visiting_team ~ .data$home_team),
+                           receiving_team_id = case_when(.data$serving_team %eq% .data$home_team ~ .data$visiting_team_id,
+                                                      .data$serving_team %eq% .data$visiting_team ~ .data$home_team_id))
     }
 
     if ("touch_summaries" %in% to_add && (!all(c("ts_pass_quality", "ts_set_error", "ts_pass_evaluation_code") %in% names(x)) || !use_existing)) {
