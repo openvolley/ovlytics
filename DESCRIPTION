@@ -25,6 +25,7 @@ Imports:
     stringr,
     tidyr
 Suggests:
+    covr,
     shiny,
     testthat
 License: MIT + file LICENSE

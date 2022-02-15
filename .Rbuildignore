@@ -4,3 +4,4 @@
 ^.*\.Rproj$
 docs/
 ^\.github$
+^codecov\.yml$
