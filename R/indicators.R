@@ -18,21 +18,33 @@
 #'
 #' @export
 attack_eff <- function(evaluation, skill) {
-    if (!missing(skill)) evaluation <- evaluation[skill %eq% "Attack"]
+    assert_that(is.character(evaluation))
+    if (!missing(skill)) {
+        assert_that(is.character(skill))
+        evaluation <- evaluation[skill %eq% "Attack"]
+    }
     (sum(evaluation %eq% "Winning attack") - sum(evaluation %in% c("Error", "Blocked"))) / sum(!is.na(evaluation))
 }
 
 #' @rdname attack_eff
 #' @export
 serve_eff <- function(evaluation, skill) {
-    if (!missing(skill)) evaluation <- evaluation[skill %eq% "Serve"]
+    assert_that(is.character(evaluation))
+    if (!missing(skill)) {
+        assert_that(is.character(skill))
+        evaluation <- evaluation[skill %eq% "Serve"]
+    }
     (sum(grepl("^(Ace|Positive)", evaluation)) - sum(grepl("^(Error|Negative)", evaluation))) / sum(!is.na(evaluation))
 }
 
 #' @rdname attack_eff
 #' @export
 reception_eff <- function(evaluation, skill) {
-    if (!missing(skill)) evaluation <- evaluation[skill %eq% "Reception"]
+    assert_that(is.character(evaluation))
+    if (!missing(skill)) {
+        assert_that(is.character(skill))
+        evaluation <- evaluation[skill %eq% "Reception"]
+    }
     (sum(grepl("^(Perfect|Positive)", evaluation)) - sum(grepl("^(Error|Poor)", evaluation))) / sum(!is.na(evaluation))
 }
 
