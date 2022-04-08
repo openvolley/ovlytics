@@ -2,10 +2,13 @@
 #'
 #' @param x data.frame: the `plays` data.frame as returned by [datavolley::read_dv()] or [peranavolley::pv_read()]
 #' @param to_add character: columns to add
-#' - "receiving_team" adds the columns "receiving_team" (team name) and "receiving_team_id"
-#' - "touch_summaries" adds a number of columns named "ts_*" that summarize a team touch (e.g. columns "ts_pass_quality", "ts_pass_evaluation_code" give the pass quality and pass evaluation code of the reception or dig associated with a given team touch)
-#' - "followed" adds the columns "followed_timeout", "followed_technical_timeout", and "followed_sub"
-#' - "setters" adds the columns "home_setter_id", "visiting_setter_id" (the player IDs of the home and visiting setter on court), and "setter_id", "setter_position", and "setter_front_back" (the player ID and position of the setter from the team performing the current action)
+#' * "receiving_team" adds the columns "receiving_team" (team name) and "receiving_team_id"
+#' * "winners" adds the columns "set_won_by", "set_won_by_id" (the name and ID of the team that won the current set), "match_won_by", "match_won_by_id" (the name and ID of the team that won the current match), "team_won_set" and "team_won_match" (did the team making the action in the current row win the set/match), and "home_sets_won" and "visiting_sets_won" (the number of sets won by the home and visiting teams)
+#' * "touch_summaries" adds a number of columns named "ts_*" that summarize a team touch (e.g. columns "ts_pass_quality", "ts_pass_evaluation_code" give the pass quality and pass evaluation code of the reception or dig associated with a given team touch)
+#' * "setters" adds the columns "home_setter_id", "visiting_setter_id" (the player IDs of the home and visiting setter on court), and "setter_id", "setter_position", and "setter_front_back" (the player ID and position of the setter from the team performing the current action)
+#' * "followed" adds the columns "followed_timeout", "followed_technical_timeout", and "followed_sub"
+#' * "all" is a shortcut for all of the above
+#'
 #' @param use_existing logical: if `TRUE` and all of the columns associated with a given `to_add` choice are already present in `x`, they won't be re-generated
 #'
 #' @return `x` with the extra columns added
@@ -15,7 +18,8 @@ ov_augment_plays <- function(x, to_add = c("receiving_team", "touch_summaries", 
     assert_that(is.character(to_add))
     assert_that(is.flag(use_existing), !is.na(use_existing))
     to_add <- tolower(to_add)
-    known_to_add <- c("receiving_team", "touch_summaries", "setters", "followed") ## the allowed values
+    known_to_add <- c("receiving_team", "touch_summaries", "setters", "followed", "winners") ## the allowed values
+    if ("all" %in% to_add) to_add <- known_to_add
     if (!all(to_add %in% known_to_add)) {
         warning("unrecognized 'to_add' values, ignoring: ", paste0(setdiff(to_add, known_to_add)))
     }
@@ -50,6 +54,43 @@ ov_augment_plays <- function(x, to_add = c("receiving_team", "touch_summaries", 
 
     if ("followed" %in% to_add && (!all(c("followed_timeout", "followed_technical_timeout", "followed_sub") %in% names(x)) || !use_existing)) {
         x <- augment_followed_cols(x)
+    }
+
+    wnames <- c("set_won_by", "set_won_by_id", "team_won_set", "match_won_by", "match_won_by_id", "team_won_match", "home_sets_won", "visiting_sets_won")
+    if ("winners" %in% to_add && (!all(wnames %in% names(x)) || !use_existing)) {
+        x <- x[, setdiff(names(x), wnames)]
+        winners <- dplyr::summarize(group_by(dplyr::filter(x, !is.na(.data$match_id) & !is.na(.data$set_number)), .data$match_id, .data$set_number),
+                                    set_won_by = case_when(max(.data$home_team_score, na.rm = TRUE) > max(.data$visiting_team_score, na.rm = TRUE) ~ "home",
+                                                           max(.data$visiting_team_score, na.rm = TRUE) > max(.data$home_team_score, na.rm = TRUE) ~ "visiting"),
+                                    .groups = "drop")
+        ## set_won_by is "home" or "visiting"
+        winners <- group_by(winners, .data$match_id) %>% mutate(home_sets_won = sum(.data$set_won_by == "home", na.rm = TRUE),
+                                                                visiting_sets_won = sum(.data$set_won_by == "visiting", na.rm = TRUE),
+                                                                match_won_by = case_when(.data$home_sets_won > .data$visiting_sets_won ~ "home",
+                                                                                         .data$visiting_sets_won > .data$home_sets_won ~ "visiting")) %>%
+            ungroup
+        ## match_won_by is "home" or "visiting"
+        ## some checks
+        if (nrow(winners) != nrow(distinct(winners[, c("match_id", "set_number")]))) {
+            warning("set/match_won_by code failed")
+            winners <- mutate(winners, match_won_by = NA_character_, set_won_by = NA_character_, home_sets_won = NA_integer_, visiting_sets_won = NA_integer_)
+        } else {
+            tempx <- left_join(x, winners, by = c("match_id", "set_number"))
+            if (nrow(tempx) != nrow(x)) {
+                warning("set/match_won_by code failed")
+                x <- mutate(x, match_won_by = NA_character_, set_won_by = NA_character_, home_sets_won = NA_integer_, visiting_sets_won = NA_integer_)
+            } else {
+                x <- tempx
+            }
+        }
+        ## now fill with team names and ids
+        x <- mutate(x,
+                    set_won_by_id = case_when(.data$set_won_by == "home" ~ .data$home_team_id, .data$set_won_by == "visiting" ~ .data$visiting_team_id),
+                    set_won_by = case_when(.data$set_won_by == "home" ~ .data$home_team, .data$set_won_by == "visiting" ~ .data$visiting_team),
+                    team_won_set = .data$team_id == .data$set_won_by_id,
+                    match_won_by_id = case_when(.data$match_won_by == "home" ~ .data$home_team_id, .data$match_won_by == "visiting" ~ .data$visiting_team_id),
+                    match_won_by = case_when(.data$match_won_by == "home" ~ .data$home_team, .data$match_won_by == "visiting" ~ .data$visiting_team),
+                    team_won_match = .data$team_id == .data$match_won_by_id)
     }
 
     if ("setters" %in% to_add && (!all(c("home_setter_id", "visiting_setter_id", "setter_id", "setter_position", "setter_front_back") %in% names(x)) || !use_existing)) {

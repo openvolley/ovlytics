@@ -16,9 +16,11 @@ ov_augment_plays(
 \item{to_add}{character: columns to add
 \itemize{
 \item "receiving_team" adds the columns "receiving_team" (team name) and "receiving_team_id"
+\item "winners" adds the columns "set_won_by", "set_won_by_id" (the name and ID of the team that won the current set), "match_won_by", "match_won_by_id" (the name and ID of the team that won the current match), "team_won_set" and "team_won_match" (did the team making the action in the current row win the set/match), and "home_sets_won" and "visiting_sets_won" (the number of sets won by the home and visiting teams)
 \item "touch_summaries" adds a number of columns named "ts_*" that summarize a team touch (e.g. columns "ts_pass_quality", "ts_pass_evaluation_code" give the pass quality and pass evaluation code of the reception or dig associated with a given team touch)
-\item "followed" adds the columns "followed_timeout", "followed_technical_timeout", and "followed_sub"
 \item "setters" adds the columns "home_setter_id", "visiting_setter_id" (the player IDs of the home and visiting setter on court), and "setter_id", "setter_position", and "setter_front_back" (the player ID and position of the setter from the team performing the current action)
+\item "followed" adds the columns "followed_timeout", "followed_technical_timeout", and "followed_sub"
+\item "all" is a shortcut for all of the above
 }}
 
 \item{use_existing}{logical: if \code{TRUE} and all of the columns associated with a given \code{to_add} choice are already present in \code{x}, they won't be re-generated}
