@@ -376,9 +376,9 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
 
     if (attack_by_var == "attack_code") {
    
-        ## hmm, the meta$attacks data.frame can be a bit messy ... the attack location is either "X8" or "V8"
-        atk_loc_var <- if ("X8" %in% names(ssd$raw_data$meta$attacks)) "X8" else "V8"
-        if (!atk_loc_var %in% names(ssd$raw_data$meta$attacks)) stop("could not plot attack distribution, missing attack start location in meta$attacks table")
+        ## hmm, the meta$attacks data.frame can be a bit messy ... the attack location is either "X8" or "V8" or "start_coordinate"
+        atk_loc_var <- head(intersect(c("X8" ,"V8", "start_coordinate"), names(ssd$raw_data$meta$attacks)), 1)
+        if (length(atk_loc_var) < 1 || !atk_loc_var %in% names(ssd$raw_data$meta$attacks)) stop("could not plot attack distribution, missing attack start location in meta$attacks table")
         attack_zones_actual <- left_join(attack_zones_actual, dplyr::select(ssd$raw_data$meta$attacks, "code", {{ atk_loc_var }}, "type"), by = c("attack_code" = "code"))
         attack_zones_actual <-cbind(attack_zones_actual, dv_index2xy(attack_zones_actual[[atk_loc_var]]))
 
