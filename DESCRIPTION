@@ -5,6 +5,8 @@ Authors@R: c(person("Ben", "Raymond", email = "ben@untan.gl", role = c("aut", "c
              person("Adrien", "Ickowicz", role = "aut"),
              person("openvolley.org", role = "org"))
 Description: Analytical functions for volleyball analytics, to be used in conjunction with the datavolley and peranavolley packages.
+URL: https://ovlytics.openvolley.org, https://github.com/openvolley/ovlytics
+BugReports: https://github.com/openvolley/ovlytics/issues
 Imports:
     assertthat,
     cowplot,
