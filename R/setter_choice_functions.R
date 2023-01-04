@@ -74,7 +74,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
     if ((is.null(history_table$prior_table) || !is.data.frame(history_table$prior_table) || nrow(history_table$prior_table) < 1) && attack_options %eq% "use_history") stop("History table is missing or empty")
 
     if((!(setter_position_by_var %eq% history_table$setter_position_by_var) || !(attack_by_var %eq% history_table$attack_by_var)) && attack_options %eq% "use_history") stop("History and bandit option need to match")
-    
+
     do_shiny_progress <- tryCatch(!is.null(shiny_progress) && length(shiny_progress) == 2 && !any(is.na(shiny_progress)) && requireNamespace("shiny", quietly = TRUE), error = function(e) FALSE)
     n_outer <- nrow(dplyr::distinct(team_setter[, c("team", "setter_id")]))
     spcount <- 0L
@@ -85,16 +85,12 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
             spcount <- spcount + 1L
             if (isTRUE(do_shiny_progress)) try(shiny::setProgress(value = spcount/n_outer*abs(diff(shiny_progress)) + min(shiny_progress)), silent = TRUE)
             data_game <- dplyr::filter(data, .data$team == iTeam & .data$setter_id == iSetter)
-
+        
             if (nrow(data_game) < 20) next
-
-            tbleChoice <- if (packageVersion("dplyr") >= "1.0.0") {
-                              dplyr::group_by(data_game, dplyr::across({{ setter_position_by_var }}), .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
-                          } else {
-                              dplyr::group_by_at(data_game, c(setter_position_by_var, "ts_pass_quality", attack_by_var))
-                          }
+        
+            tbleChoice <- dplyr::group_by(data_game, dplyr::across({{ setter_position_by_var }}), .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
             tbleChoice <- dplyr::ungroup(dplyr::summarize(tbleChoice, alpha = sum(.data$evaluation %eq% "Winning attack"), beta = sum(!(.data$evaluation %eq% "Winning attack")), n = dplyr::n()))
-
+        
             if (attack_options == "use_data") {
                 this <- tbleChoice
             } else if (attack_options == "use_history") {
@@ -103,11 +99,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                     dplyr::select(dplyr::filter(history_table$prior_table, .data$team == iTeam & .data$setter_id == iSetter), -"team", -"setter_id"),
                     #dplyr::select(mutate(tbleChoice, n_s = .data$KR * .data$n), -"KR"))
                     tbleChoice)
-                if (packageVersion("dplyr") >= "1.0.0") {
-                    this <- ungroup(dplyr::summarize(group_by(this, dplyr::across({{ setter_position_by_var }}), .data$ts_pass_quality, dplyr::across({{ attack_by_var }})), alpha = sum(.data$alpha), beta = sum(.data$beta), n = sum(.data$n)))
-                } else {
-                    this <- ungroup(dplyr::summarize(dplyr::group_by_at(this, c(setter_position_by_var, "ts_pass_quality", attack_by_var)), alpha = sum(.data$alpha), beta = sum(.data$beta), n = sum(.data$n)))
-                }
+                this <- ungroup(dplyr::summarize(group_by(this, dplyr::across({{ setter_position_by_var }}), .data$ts_pass_quality, dplyr::across({{ attack_by_var }})), alpha = sum(.data$alpha), beta = sum(.data$beta), n = sum(.data$n)))
             }
             # Define the kill rate
             this <- dplyr::select(dplyr::mutate(this, KR = .data$alpha / (.data$alpha + .data$beta)), -"alpha", -"beta")
@@ -128,27 +120,27 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
 
             choice <- matrix(seq_len(ncol(tableBB) - 8), ncol = (ncol(tableBB) - 8), nrow = nrow(tableBB), byrow = TRUE)
             choice[which(is.na(as.matrix(tableBB[, seq(9, ncol(tableBB), by = 1)])))] <- NA
-
+        
             probs <- as.matrix(tableBB[, seq(9, ncol(tableBB), by = 1)])
             probs[is.na(probs)] <- 0
-
+        
             duration <- nrow(tableBB)
-
+        
             ## preallocate vectors and assemble data frame outside of loop
             res_sim_num <- rep(seq_len(n_sim), each = duration)
             resn <- length(res_sim_num)
             res_ts_pass_quality <- rep(NA_character_, resn)
             res_setter_position <- rep(NA_integer_, resn)
             res_point_id <- rep(NA_integer_, resn)
-
+        
             nArms <- ncol(probs)
-
+        
             if (nrow(probs) < duration) probs <- probs[rep(1, duration), ]
-
+        
             ##postPar_h = array(NA, dim = c(nArms, 2, n_sim))
-
+        
             arm_seq <- reward_seq <- NULL
-
+        
             for (nS in seq_len(n_sim)) {
                 postPar <- matrix(c(priors$par1, priors$par2), ncol = nArms, nrow = 2, byrow = TRUE)
                 ##rewards <- matrix(mapply(function(x, y) rbinom(n = 1, size = 1, prob = probs[x, y]),
@@ -158,11 +150,11 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                 rewards <- temp <= probs
                 mode(rewards) <- "integer"
                 if (is.null(choice)) choice <- matrix(seq_len(nArms), ncol = nArms, nrow = duration, byrow = TRUE)
-
+            
                 #res_setter_position[res_sim_num == nS ] <- unlist(tableBB[,setter_position_by_var])
                 #res_ts_pass_quality[res_sim_num == nS] <- tableBB$ts_pass_quality
                 #res_point_id[res_sim_num == nS] <- tableBB$point_id
-
+            
                 res_setter_position[res_sim_num == nS ] <- tableBB[[setter_position_by_var]]
                 res_ts_pass_quality[res_sim_num == nS] <- tableBB[["ts_pass_quality"]]
                 res_point_id[res_sim_num == nS] <- tableBB[["point_id"]]
@@ -178,7 +170,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                 }
                 ##postPar_h[,,nS] <- postPar
             }
-
+        
             ## Bandit choice condiional on setter choices and attack outcomes
             res_cond <- matrix(NA_real_, nrow = duration, ncol = nArms)
             ObservedChoice <- match(tableBB[[attack_by_var]], colnames(probs))
@@ -199,9 +191,9 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
             colnames(res_cond_df) <- paste("Bandit choice", colnames(probs))
             EKR <- data.frame(EKR, stringsAsFactors = FALSE)
             colnames(EKR) <- paste("Expected KR", colnames(probs))
-
+        
             cond <- bind_rows(cond, mutate(bind_cols(tableBB, res_cond_df, EKR), setter = iSetter, team = iTeam))
-
+        
             res_attack_choice <- colnames(probs)[arm_seq]
             if (attack_by == "zone") res_attack_choice <- as.integer(res_attack_choice)
             res <- data.frame(sim_num = rep(seq_len(n_sim), each = duration), time = rep(seq_len(duration), n_sim),
@@ -209,12 +201,12 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                               point_id = res_point_id,
                               attack_choice = res_attack_choice,
                               team = iTeam, setter = iSetter, stringsAsFactors = FALSE)
-
+        
             tableBB$team <- iTeam
             tableBB$setter <- iSetter
             tbleChoice$team <- iTeam
             tbleChoice$setter <- iSetter
-
+        
             sim <- bind_rows(sim, res)
             actual <- bind_rows(actual, tableBB)
             tbleChoice <- dplyr::select(mutate(tbleChoice, KR = .data$alpha / (.data$alpha + .data$beta)), -"alpha", -"beta")
@@ -362,11 +354,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
 
     attack_zones_sim <- dplyr::summarize(group_by(ssd$simulations, .data$team, .data$setter, .data$setter_position, .data$attack_choice), n_attacks = n())
     attack_zones_sim <- ungroup(mutate(attack_zones_sim, rate = .data$n_attacks / sum(.data$n_attacks)))
-    if (packageVersion("dplyr") >= "1.0.0") {
-        attack_zones_actual <- dplyr::summarize(group_by(ssd$actual, .data$team, .data$setter, dplyr::across({{ setter_position_by_var }}), dplyr::across({{ attack_by_var }})), n_attacks = n())
-    } else {
-        attack_zones_actual <- dplyr::summarize(dplyr::group_by_at(ssd$actual, c("team", "setter", setter_position_by_var, attack_by_var)), n_attacks = n())
-    }
+    attack_zones_actual <- dplyr::summarize(group_by(ssd$actual, .data$team, .data$setter, dplyr::across({{ setter_position_by_var }}), dplyr::across({{ attack_by_var }})), n_attacks = n())
     attack_zones_actual <- ungroup(mutate(attack_zones_actual, rate = .data$n_attacks / sum(.data$n_attacks)))
     setter_team <- distinct(dplyr::select(attack_zones_actual, "team", "setter"))
 
@@ -420,7 +408,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
                 scale_fill_gradient2(name = "Attack rate") + facet_wrap(~rotation) + theme(legend.position = "none") +
                 geom_text(aes_string(x = "x", y ="y", label = "lab"), size = font_size/11*9.5*0.35278) + ggtitle(twrapf(paste0("Actual distribution - ", yy, " (", xx, ")")))
         })
-
+    
         gSim <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_sim, .data$team == xx & .data$setter == yy),
                           lab = paste0(round(.data$rate, 2) * 100, "%")),
@@ -727,25 +715,12 @@ ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition
 
     data_game <- dplyr::filter(dplyr::filter(data_game, .data$skill == "Attack" & !.data$attack_code %in% exclude_attacks & tolower(.data$phase) %in% tolower(play_phase)), !is.na(.data[[attack_by_var]]))
 
-    # prior_table <- if (packageVersion("dplyr") >= "1.0.0") {
-    #                    group_by(data_game, .data$team, .data$setter_id, .data$setter_position, .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
-    #                } else {
-    #                    dplyr::group_by_at(data_game, c("team", "setter_id", "setter_position", "ts_pass_quality", attack_by_var))
-    #                }
-
-    prior_table <- if (packageVersion("dplyr") >= "1.0.0") {
-        group_by(data_game,.data$match_id, .data$team, .data$setter_id, dplyr::across({{ setter_position_by_var }}), dplyr::across({{ attack_by_var }}), .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
-    } else {
-        dplyr::group_by_at(data_game, c("match_id","team", "setter_id", setter_position_by_var, "ts_pass_quality", attack_by_var))
-    }
+    ## prior_table <- group_by(data_game, .data$team, .data$setter_id, .data$setter_position, .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
+    prior_table <- group_by(data_game,.data$match_id, .data$team, .data$setter_id, dplyr::across({{ setter_position_by_var }}), dplyr::across({{ attack_by_var }}), .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
 
     prior_table <- ungroup(dplyr::summarize(prior_table, alpha = sum(.data$evaluation %eq% "Winning attack"), beta = sum(!(.data$evaluation %eq% "Winning attack")), n = n()))
 
-    prior_table <- if (packageVersion("dplyr") >= "1.0.0") {
-        group_by(prior_table,.data$team, .data$setter_id, dplyr::across({{ setter_position_by_var }}), .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
-    } else {
-        dplyr::group_by_at(prior_table, c("team", "setter_id", setter_position_by_var, "ts_pass_quality", attack_by_var))
-    }
+    prior_table <- group_by(prior_table,.data$team, .data$setter_id, dplyr::across({{ setter_position_by_var }}), .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
 
     prior_table <- drop_na(ungroup(dplyr::summarize(prior_table, alpha = sum(.data$alpha), beta = sum(.data$beta), n = sum(n), n_matches = n())))
 
@@ -786,49 +761,27 @@ ov_plot_history_table <- function(history_table, team, setter_id){
                                     "setter_front_back" = c("front", "back"))
 
     df <- dplyr::tibble(thetaBounds = c(0,1))
-    if (packageVersion("dplyr") >= "1.0.0") {
-        ht_tmp <- mutate(history_table$prior_table,
-                         dplyr::across(dplyr::matches("start_zone"), factor),
-                         dplyr::across(dplyr::matches("attack_code"), factor),
-                         dplyr::across(dplyr::matches("set_code"), factor),
-                         dplyr::across(dplyr::matches("skill_type"), factor),
-                         dplyr::across(dplyr::matches("setter_position"), factor, levels = setter_rotation_levels),
-                         dplyr::across(dplyr::matches("setter_front_back"), factor, levels = setter_rotation_levels),
-                         dplyr::across(dplyr::matches("ts_pass_quality"), factor, levels = c("Perfect", "Good", "OK", "Poor")))
-    } else {
-        cls <- intersect(names(history_table$prior_table), c("start_zone", "attack_code", "set_code", "skill_type"))
-        if (length(cls) > 0) ht_tmp <- dplyr::mutate_at(history_table$prior_table, cls, factor)
-        if ("setter_position" %in% names(ht_tmp)) ht_tmp$setter_position <- factor(ht_tmp$setter_position, levels = setter_rotation_levels)
-        if ("setter_front_back" %in% names(ht_tmp)) ht_tmp$setter_front_back <- factor(ht_tmp$setter_front_back, levels = setter_rotation_levels)
-        if ("ts_pass_quality" %in% names(ht_tmp)) ht_tmp$ts_pass_quality <- factor(ht_tmp$ts_pass_quality, levels = c("Perfect", "Good", "OK", "Poor"))
-    }
+    ht_tmp <- mutate(history_table$prior_table,
+                     dplyr::across(dplyr::matches("start_zone"), factor),
+                     dplyr::across(dplyr::matches("attack_code"), factor),
+                     dplyr::across(dplyr::matches("set_code"), factor),
+                     dplyr::across(dplyr::matches("skill_type"), factor),
+                     dplyr::across(dplyr::matches("setter_position"), factor, levels = setter_rotation_levels),
+                     dplyr::across(dplyr::matches("setter_front_back"), factor, levels = setter_rotation_levels),
+                     dplyr::across(dplyr::matches("ts_pass_quality"), factor, levels = c("Perfect", "Good", "OK", "Poor")))
 
-    ht <-  if (packageVersion("dplyr") >= "1.0.0") {
-               mutate(tidyr::nest(dplyr::group_by(dplyr::filter(ht_tmp, .data$team %eq% team_select, .data$setter_id %eq% setter_select),
-                                                  dplyr::across({{ setter_position_by_var }}), dplyr::across({{ attack_by_var }}))),
-                      plot = purrr::map(.data$data, ~
-                                                        ggplot(df, aes_string(x="thetaBounds")) + xlab("") + ylab("")+ylim(c(0,6)) +
-                                                        apply(.x, 1, function(y) geom_area(aes(fill = y['ts_pass_quality'], col = y['ts_pass_quality']), stat = "function", fun = dbeta, alpha = 0.5,
-                                                                                           args = list(shape1 = as.numeric(y['alpha']), shape2 = as.numeric(y['beta'])))) + theme_bw(base_size = 11) +
-                                                        theme(legend.position = 'none',plot.margin = unit(c(1,0,0,0.1), "pt"))))
-           } else {
-               mutate(tidyr::nest(dplyr::group_by_at(dplyr::filter(ht_tmp, .data$team %eq% team_select, .data$setter_id %eq% setter_select),
-                                                  setter_position_by_var, attack_by_var)),
-                      plot = purrr::map(.data$data, ~
-                                                        ggplot(df, aes_string(x="thetaBounds")) + xlab("") + ylab("")+ylim(c(0,6)) +
-                                                        apply(.x, 1, function(y) geom_area(aes(fill = y['ts_pass_quality'], col = y['ts_pass_quality']), stat = "function", fun = dbeta, alpha = 0.5,
-                                                                                           args = list(shape1 = as.numeric(y['alpha']), shape2 = as.numeric(y['beta'])))) + theme_bw(base_size = 11) +
-                                                        theme(legend.position = 'none',plot.margin = unit(c(1,0,0,0.1), "pt"))))
-           }
+    ht <-  mutate(tidyr::nest(dplyr::group_by(dplyr::filter(ht_tmp, .data$team %eq% team_select, .data$setter_id %eq% setter_select),
+                                              dplyr::across({{ setter_position_by_var }}), dplyr::across({{ attack_by_var }}))),
+                  plot = purrr::map(.data$data, ~
+                                                    ggplot(df, aes_string(x = "thetaBounds")) + xlab("") + ylab("") + ylim(c(0, 6)) +
+                                                    apply(.x, 1, function(y) geom_area(aes(fill = y["ts_pass_quality"], col = y["ts_pass_quality"]), stat = "function", fun = dbeta, alpha = 0.5,
+                                                                                       args = list(shape1 = as.numeric(y["alpha"]), shape2 = as.numeric(y["beta"])))) + theme_bw(base_size = 11) +
+                                                    theme(legend.position = "none", plot.margin = unit(c(1, 0, 0, 0.1), "pt"))))
 
     all_combs <- tidyr::complete(distinct(
         dplyr::select(ht_tmp, dplyr::matches("setter_front_back"), dplyr::matches("setter_position"), dplyr::matches("start_zone"), dplyr::matches("attack_code"), dplyr::matches("set_code"), dplyr::matches("skill_type"))), .data[[{{ setter_position_by_var }}]], .data[[{{ attack_by_var }}]])
 
-    ht <- if (packageVersion("dplyr") >= "1.0.0") {
-              dplyr::arrange(full_join(ht, all_combs), dplyr::across({{ setter_position_by_var }}), dplyr::across({{ attack_by_var }}))
-          } else {
-              dplyr::arrange(full_join(ht, all_combs), .data[[setter_position_by_var]], .data[[attack_by_var]])
-          }
+    ht <- dplyr::arrange(full_join(ht, all_combs), dplyr::across({{ setter_position_by_var }}), dplyr::across({{ attack_by_var }}))
 
     ht <- mutate(ht, plot = ifelse(.data$plot == "NULL",
                                   list(ggplot() + theme_void()), .data$plot))
@@ -873,41 +826,21 @@ ov_print_history_table <- function(history_table, team, setter_id){
                                     "setter_position" = c("4","3","2","5","6","1"),
                                     "setter_front_back" = c("front", "back"))
 
-    if (packageVersion("dplyr") >= "1.0.0") {
-        ht_tmp <- mutate(history_table$prior_table,
-                         dplyr::across(dplyr::matches("start_zone"), factor),
-                         dplyr::across(dplyr::matches("attack_code"), factor),
-                         dplyr::across(dplyr::matches("set_code"), factor),
-                         dplyr::across(dplyr::matches("skill_type"), factor),
-                         dplyr::across(dplyr::matches("setter_position"), factor, levels = setter_rotation_levels),
-                         dplyr::across(dplyr::matches("setter_front_back"), factor, levels = setter_rotation_levels),
-                         dplyr::across(dplyr::matches("ts_pass_quality"), factor, levels = c("Perfect", "Good", "OK", "Poor")),
-                         kr = round(.data$alpha / (.data$alpha + .data$beta),2))
-    } else {
-        cls <- intersect(names(history_table$prior_table), c("start_zone", "attack_code", "set_code", "skill_type"))
-        if (length(cls) > 0) ht_tmp <- dplyr::mutate_at(history_table$prior_table, cls, factor)
-        if ("setter_position" %in% names(ht_tmp)) ht_tmp$setter_position <- factor(ht_tmp$setter_position, levels = setter_rotation_levels)
-        if ("setter_front_back" %in% names(ht_tmp)) ht_tmp$setter_front_back <- factor(ht_tmp$setter_front_back, levels = setter_rotation_levels)
-        if ("ts_pass_quality" %in% names(ht_tmp)) ht_tmp$ts_pass_quality <- factor(ht_tmp$ts_pass_quality, levels = c("Perfect", "Good", "OK", "Poor"))
-        ht_tmp <- mutate(ht_tmp, kr = round(.data$alpha / (.data$alpha + .data$beta),2))
-    }
+    ht_tmp <- mutate(history_table$prior_table,
+                     dplyr::across(dplyr::matches("start_zone"), factor),
+                     dplyr::across(dplyr::matches("attack_code"), factor),
+                     dplyr::across(dplyr::matches("set_code"), factor),
+                     dplyr::across(dplyr::matches("skill_type"), factor),
+                     dplyr::across(dplyr::matches("setter_position"), factor, levels = setter_rotation_levels),
+                     dplyr::across(dplyr::matches("setter_front_back"), factor, levels = setter_rotation_levels),
+                     dplyr::across(dplyr::matches("ts_pass_quality"), factor, levels = c("Perfect", "Good", "OK", "Poor")),
+                     kr = round(.data$alpha / (.data$alpha + .data$beta),2))
 
-    ht <-select(dplyr::filter(ht_tmp, .data$team %eq% team_select, .data$setter_id %eq% setter_select), dplyr::matches("setter_front_back"), dplyr::matches("setter_position"), .data$ts_pass_quality, .data$kr, dplyr::matches("start_zone"), dplyr::matches("set_code"), dplyr::matches("attack_code"), dplyr::matches("skill_type"))
+    ht <- select(dplyr::filter(ht_tmp, .data$team %eq% team_select, .data$setter_id %eq% setter_select), dplyr::matches("setter_front_back"), dplyr::matches("setter_position"), .data$ts_pass_quality, .data$kr, dplyr::matches("start_zone"), dplyr::matches("set_code"), dplyr::matches("attack_code"), dplyr::matches("skill_type"))
 
-    ht <- if (packageVersion("dplyr") >= "1.0.0") {
-              group_by(arrange(pivot_wider(ht, names_from = {{ attack_by_var }}, values_from = .data$kr), {{ setter_position_by_var }}, .data$ts_pass_quality), dplyr::across({{ setter_position_by_var }}))
-          } else {
-              dplyr::group_by_at(arrange(pivot_wider(ht, names_from = {{ attack_by_var }}, values_from = .data$kr), {{ setter_position_by_var }}, .data$ts_pass_quality), setter_position_by_var)
-          }
-    gt::gt(ht,
-           rowname_col = "ts_pass_quality")  %>%
-        gt::fmt_missing(columns = 1:ncol(ht),
-                        missing_text = ".") %>%
-        gt::data_color(
-            columns = 1:ncol(ht),
-            colors = my_pal
-        ) %>%
-        gt::cols_align(align = "center",
-                   columns = 1:ncol(ht))
-
+    ht <- group_by(dplyr::arrange(pivot_wider(ht, names_from = {{ attack_by_var }}, values_from = .data$kr), {{ setter_position_by_var }}, .data$ts_pass_quality), dplyr::across({{ setter_position_by_var }}))
+    gt::gt(ht, rowname_col = "ts_pass_quality")  %>%
+        gt::fmt_missing(columns = 1:ncol(ht), missing_text = ".") %>%
+        gt::data_color(columns = 1:ncol(ht), colors = my_pal) %>%
+        gt::cols_align(align = "center", columns = 1:ncol(ht))
 }
