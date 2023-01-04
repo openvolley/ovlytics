@@ -765,7 +765,7 @@ ov_plot_history_table <- function(history_table, team, setter_id){
                      dplyr::across(dplyr::matches("setter_front_back"), factor, levels = setter_rotation_levels),
                      dplyr::across(dplyr::matches("ts_pass_quality"), factor, levels = c("Perfect", "Good", "OK", "Poor")))
 
-    ht <-  mutate(tidyr::nest(dplyr::group_by(dplyr::filter(ht_tmp, .data$team %eq% team_select, .data$setter_id %eq% setter_select),
+    ht <-  mutate(nest(dplyr::group_by(dplyr::filter(ht_tmp, .data$team %eq% team_select, .data$setter_id %eq% setter_select),
                                               dplyr::across({{ setter_position_by_var }}), dplyr::across({{ attack_by_var }}))),
                   plot = purrr::map(.data$data, ~
                                                     ggplot(df, aes_string(x = "thetaBounds")) + xlab("") + ylab("") + ylim(c(0, 6)) +
@@ -773,7 +773,7 @@ ov_plot_history_table <- function(history_table, team, setter_id){
                                                                                        args = list(shape1 = as.numeric(y["alpha"]), shape2 = as.numeric(y["beta"])))) + theme_bw(base_size = 11) +
                                                     theme(legend.position = "none", plot.margin = unit(c(1, 0, 0, 0.1), "pt"))))
 
-    all_combs <- tidyr::complete(distinct(
+    all_combs <- complete(distinct(
         dplyr::select(ht_tmp, dplyr::matches("setter_front_back"), dplyr::matches("setter_position"), dplyr::matches("start_zone"), dplyr::matches("attack_code"), dplyr::matches("set_code"), dplyr::matches("skill_type"))), .data[[{{ setter_position_by_var }}]], .data[[{{ attack_by_var }}]])
 
     ht <- dplyr::arrange(full_join(ht, all_combs), dplyr::across({{ setter_position_by_var }}), dplyr::across({{ attack_by_var }}))
@@ -781,7 +781,7 @@ ov_plot_history_table <- function(history_table, team, setter_id){
     ht <- mutate(ht, plot = ifelse(.data$plot == "NULL",
                                   list(ggplot() + theme_void()), .data$plot))
 
-    labels = dplyr::pull(tidyr::unite(ht, 'label', {{ setter_position_by_var }}, {{ attack_by_var }}, remove = FALSE, sep = " "), .data$label)
+    labels = dplyr::pull(unite(ht, "label", {{ setter_position_by_var }}, {{ attack_by_var }}, remove = FALSE, sep = " "), .data$label)
 
     cowplot::plot_grid(plotlist = ht$plot, labels = labels, nrow = length(setter_rotation_levels),  label_x = -0.04, label_y = 1.01)
 
