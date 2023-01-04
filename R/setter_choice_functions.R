@@ -103,7 +103,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
             # Define the kill rate
             this <- dplyr::select(dplyr::mutate(this, KR = .data$alpha / (.data$alpha + .data$beta)), -"alpha", -"beta")
         
-            probTable <- tidyr::pivot_wider(dplyr::select(this, -"n"), names_from = {{ attack_by_var }}, values_from = .data$KR)
+            probTable <- pivot_wider(dplyr::select(this, -"n"), names_from = {{ attack_by_var }}, values_from = "KR")
             if (FALSE) {
                 ## use team_id in plot
                 tableBB <- dplyr::mutate(data_game, score = paste(.data$home_team_id, .data$home_team_score, "-", .data$visiting_team_score, .data$visiting_team_id))
@@ -113,11 +113,8 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                                                                   "-",
                                                                   .data$visiting_team_score, team_name_to_abbrev(.data$visiting_team)))
             }
-            tableBB <- dplyr::left_join(dplyr::select(tableBB, "set_number", "point_id", "score", {{ setter_position_by_var }}, "ts_pass_quality", {{ attack_by_var }}, "evaluation", "video_time"), probTable, by = c({{ setter_position_by_var }}, "ts_pass_quality"))
+            tableBB <- dplyr::left_join(dplyr::select(tableBB, "set_number", "point_id", "score", {{ setter_position_by_var }}, "ts_pass_quality", {{ attack_by_var }}, "evaluation", "video_time"), probTable, by = c(setter_position_by_var, "ts_pass_quality"))
         
-            tableBB <- dplyr::left_join(dplyr::select(tableBB, "set_number", "point_id", "score",{{ setter_position_by_var }}, "ts_pass_quality", {{ attack_by_var }}, "evaluation", "video_time"),
-                                        probTable, by = c({{ setter_position_by_var }}, "ts_pass_quality"))
-
             choice <- matrix(seq_len(ncol(tableBB) - 8), ncol = (ncol(tableBB) - 8), nrow = nrow(tableBB), byrow = TRUE)
             choice[which(is.na(as.matrix(tableBB[, seq(9, ncol(tableBB), by = 1)])))] <- NA
         
@@ -264,7 +261,7 @@ ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, label_setters_by = "nam
     temp$visiting_setter_period_on_court <- paste0(temp$visiting_setter_id, expand_rle(rle(temp$visiting_setter_id)$lengths))
 
     bbtrajqi <- mutate(left_join(bbtrajqi,
-        select(ungroup(temp), .data$point_id, .data$home_setter_period_on_court, .data$visiting_setter_period_on_court), by = "point_id"),
+        dplyr::select(ungroup(temp), "point_id", "home_setter_period_on_court", "visiting_setter_period_on_court"), by = "point_id"),
         period_on_court = case_when(.data$team %eq% datavolley::home_team(ssd$raw_data) ~ .data$home_setter_period_on_court,
                                            .data$team %eq% datavolley::visiting_team(ssd$raw_data) ~ .data$visiting_setter_period_on_court))
 
@@ -272,7 +269,7 @@ ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, label_setters_by = "nam
                   pts = cumsum(.data$evaluation == "Winning attack"), time = row_number())
 
     tbC <- mutate(left_join(tbC,
-                            select(ungroup(temp), .data$point_id, .data$home_setter_period_on_court, .data$visiting_setter_period_on_court), by = "point_id"),
+                            dplyr::select(ungroup(temp), "point_id", "home_setter_period_on_court", "visiting_setter_period_on_court"), by = "point_id"),
                   period_on_court = case_when(.data$team %eq% datavolley::home_team(ssd$raw_data) ~ .data$home_setter_period_on_court,
                                               .data$team %eq% datavolley::visiting_team(ssd$raw_data) ~ .data$visiting_setter_period_on_court))
     g <- ggplot(tbC) +
@@ -318,7 +315,7 @@ ssd_set_setter_labels <- function(ssd, label_setters_by = "id") {
     label_setters_by <- match.arg(label_setters_by, c("id", "name"))
     if (label_setters_by == "name") {
         ## figure the player_id -> player_name mapping
-        pnid <- na.omit(dplyr::select(ssd$raw_data$plays, .data$team, .data$player_id, .data$player_name))
+        pnid <- na.omit(dplyr::select(ssd$raw_data$plays, "team", "player_id", "player_name"))
         pnid <- distinct(dplyr::filter(pnid, .data$player_id %in% c(unique(ssd$simulations$setter), unique(ssd$actual$setter))))
         if (nrow(pnid) != nrow(distinct(dplyr::select(pnid, -"team")))) {
             warning("cannot find unique player name for each player id, using ids as labels")
@@ -494,7 +491,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
 
         colnames(calls_arrows)[(ncol(calls_arrows)-5):ncol(calls_arrows)] <- c("start_x", "start_y","mid_x","mid_y", "end_x", "end_y")
 
-        calls_arrows <- calls_arrows %>% dplyr::select(.data$code, .data$start_x, .data$start_y,  .data$mid_x, .data$mid_y, .data$end_x, .data$end_y) %>% dplyr::rename(setter_call = "code")
+        calls_arrows <- calls_arrows %>% dplyr::select("code", "start_x", "start_y",  "mid_x", "mid_y", "end_x", "end_y") %>% dplyr::rename(setter_call = "code")
 
         calls_arrows_f <- NULL
         for(srl in setter_rotation_levels){
@@ -834,9 +831,9 @@ ov_print_history_table <- function(history_table, team, setter_id){
                      dplyr::across(dplyr::matches("ts_pass_quality"), factor, levels = c("Perfect", "Good", "OK", "Poor")),
                      kr = round(.data$alpha / (.data$alpha + .data$beta), 2))
 
-    ht <- select(dplyr::filter(ht_tmp, .data$team %eq% team_select, .data$setter_id %eq% setter_select), dplyr::matches("setter_front_back"), dplyr::matches("setter_position"), .data$ts_pass_quality, .data$kr, dplyr::matches("start_zone"), dplyr::matches("set_code"), dplyr::matches("attack_code"), dplyr::matches("skill_type"))
+    ht <- dplyr::select(dplyr::filter(ht_tmp, .data$team %eq% team_select, .data$setter_id %eq% setter_select), dplyr::matches("setter_front_back"), dplyr::matches("setter_position"), .data$ts_pass_quality, "kr", dplyr::matches("start_zone"), dplyr::matches("set_code"), dplyr::matches("attack_code"), dplyr::matches("skill_type"))
 
-    ht <- group_by(dplyr::arrange(pivot_wider(ht, names_from = {{ attack_by_var }}, values_from = .data$kr), {{ setter_position_by_var }}, .data$ts_pass_quality), dplyr::across({{ setter_position_by_var }}))
+    ht <- group_by(dplyr::arrange(pivot_wider(ht, names_from = {{ attack_by_var }}, values_from = "kr"), {{ setter_position_by_var }}, .data$ts_pass_quality), dplyr::across({{ setter_position_by_var }}))
     gt::gt(ht, rowname_col = "ts_pass_quality")  %>%
         gt::fmt_missing(columns = 1:ncol(ht), missing_text = ".") %>%
         gt::data_color(columns = 1:ncol(ht), colors = my_pal) %>%
