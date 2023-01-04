@@ -951,38 +951,36 @@ ov_print_rate_table <- function(ssd, team, setter_id){
     team_name <- team
     table_df <- dplyr::filter(ssd$rates, .data$team == team_name, .data$setter == setter_id) %>%
         dplyr::select(-"n", -"team", -"setter") %>% drop_na()  %>%
-        pivot_wider(names_from = {{ ssd$attack_by_var }}, values_from = "KR") %>%
-        dplyr::rename("Pass quality" = "ts_pass_quality", "Front/Back" = "setter_front_back") 
+        pivot_wider(names_from = ssd$attack_by_var, values_from = "KR")
+    if ("ts_pass_quality" %in% names(table_df)) table_df <- table_df %>% dplyr::rename("Pass quality" = "ts_pass_quality")
+    if ("setter_front_back" %in% names(table_df)) table_df <- table_df %>% dplyr::rename("Front/Back" = "setter_front_back")
     reactable::reactable(table_df, pagination = FALSE,
                          defaultColDef = reactable::colDef(cell = reactablefmtr::data_bars(table_df, text_position = "above", fill_color = viridisLite::viridis(5),
-                                                                 background = "transparent", round_edges = TRUE, number_fmt = scales::percent)))
+                                                                                           background = "transparent", round_edges = TRUE, number_fmt = scales::percent)))
 }
 
 
 #' Plot a simulated setter distribution sequence
 #'
-#' @param mssd simulated setter distribution output as returned by [ov_simulate_setter_distribution()]
+#' @param mssd simulated multi-game setter distribution output as returned by [ov_simulate_multiple_setter_distribution()]
 #' @param label_setters_by string: either "id" or "name"
 #' @param team NULL or string: if non-NULL, show sequence just for this team name
 #' @param nrows integer: number of rows per page in the table
 #'
 #' @examples
 #' \dontrun{
-#'   dir_dvw = "~/Documents/Donnees/VolleyBall/Dropbox/AVL_shared/AVL 2022 Womens/"
-#'   list_dv <- lapply(list.files(dir_dvw, ".dvw", full.names = TRUE), dv_read)
+#'  list_dv <- list(dv_read(ovdata_example("190301_kats_beds"))) # would normally be multiple games
+#'  mssd <- ov_simulate_multiple_setter_distribution(list_dv = list_dv,
+#'              play_phase = c("Reception", "Transition"), attack_by = "player_role",
+#'              n_sim = 100, setter_position_by = "front_back")
 #'
-#'   list_dv <- list(dv_read(ovdata_example("190301_kats_beds")))
-#'   mssd <- ov_simulate_multiple_setter_distribution(list_dv = list_dv,
-#'               play_phase = c("Reception", "Transition"), attack_by = "player_role",
-#'               n_sim = 100, setter_position_by = "front_back")
-#'
-#'   res <- ov_table_mssd(mssd, team = "SA Storm Women")
+#'  res <- ov_table_mssd(mssd, team = "GKS Katowice")
 #' }
 #' @export
 ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 50) {
     team_select <- team
 
-    ## TODO there was a setter parameter for this function, but not used, removed
+    ## TO CHECK: there was a setter parameter for this function, but not used, so removed it. Is it needed?
 
     rating_column <- function(maxWidth = 55, ...) reactable::colDef(maxWidth = maxWidth, align = "center", class = "cell number", ...)
 
@@ -1036,7 +1034,7 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
 
         attack_by_var <- ssd$attack_by_var
         setter_position_by_var <- ssd$setter_position_by_var
-        
+
         attack_zones_sim <- dplyr::summarize(group_by(ssd$simulations, .data$team, .data$setter, .data$setter_position, .data$attack_choice), n_attacks = n())
         attack_zones_sim <- ungroup(mutate(attack_zones_sim, rate = .data$n_attacks / sum(.data$n_attacks)))
         attack_zones_actual <- dplyr::summarize(group_by(ssd$actual, .data$team, .data$setter, dplyr::across({{ setter_position_by_var }}), dplyr::across({{ attack_by_var }})), n_attacks = n())
@@ -1046,11 +1044,11 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
         attack_zones_actual <- dplyr::rename(attack_zones_actual, attack_choice = {{ attack_by_var }}, setter_position = {{ setter_position_by_var}})
 
         dd_att <- full_join(dplyr::rename(attack_zones_actual, setter_name = "setter"),
-                            dplyr::rename(attack_zones_sim, e_rate = "rate", ns_attacks = "n_attacks", setter_name = "setter")) %>% ## TODO needs by
+                            dplyr::rename(attack_zones_sim, e_rate = "rate", ns_attacks = "n_attacks", setter_name = "setter")) %>% ## TO CHECK: needs by = c(something)
             mutate(diff_rate = .data$rate - .data$e_rate) %>% dplyr::select(-"e_rate", -"rate", -"ns_attacks", -"n_attacks") %>%
             pivot_wider(names_from = "attack_choice", values_from = "diff_rate")
 
-        full_dd <- bind_rows(full_dd, mutate(left_join(dplyr::rename(dd, setter_name = "setter"), dd_att), ## TODO needs by
+        full_dd <- bind_rows(full_dd, mutate(left_join(dplyr::rename(dd, setter_name = "setter"), dd_att), ## TO CHECK: needs by = c(something)
                                              home_team = ssd$raw_data$plays$home_team[1],
                                              away_team = ssd$raw_data$plays$visiting_team[1],
                                              date = ssd$raw_data$meta$match$date))
@@ -1086,7 +1084,7 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
                       bdcolor <- "grey"
                       ##value <- format(round(value, 2)*100, nsmall = 1)
                       value <- scales::label_percent()(value)
-                      if (!is.numeric(value_o) || is.na(value_o)) { ## SHOULD BE value NOT value_o?
+                      if (!is.numeric(value_o) || is.na(value_o)) { ## TO CHECK: should be value NOT value_o?
                           bdcolor <- "white"
                           value <- if (is.na(value_o)) "" else value_o
                       }
@@ -1110,7 +1108,7 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
                                                 bgcolor <- exploration_rating_color(scaled)
                                                 bdcolor <- "grey"
                                                 value <- scales::label_percent()(value)
-                                                if(!is.numeric(value_o) || is.na(value_o)) { ## SHOULD BE value NOT value_o?
+                                                if(!is.numeric(value_o) || is.na(value_o)) { ## TO CHECK: should be value NOT value_o?
                                                     value <- if (is.na(value_o)) "" else value_o
                                                     bdcolor <- "white"
                                                 }
@@ -1123,7 +1121,7 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
                                                     scaled <- round(value, 3)
                                                     color <- exploitation_rating_color(scaled)
                                                     value <- scales::label_percent()(value)
-                                                    if (!is.numeric(value_o) || is.na(value_o)) { ## SHOULD BE value NOT value_o?
+                                                    if (!is.numeric(value_o) || is.na(value_o)) { ## TO CHECK: should be value NOT value_o?
                                                         value <- if (is.na(value_o)) "" else value_o
                                                     }
                                                     tags$div(class = "", style = list(background = color, border = "1px solid grey"), value)

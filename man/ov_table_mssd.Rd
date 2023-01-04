@@ -7,7 +7,7 @@
 ov_table_mssd(mssd, label_setters_by = "name", team = NULL, nrows = 50)
 }
 \arguments{
-\item{mssd}{simulated setter distribution output as returned by \code{\link[=ov_simulate_setter_distribution]{ov_simulate_setter_distribution()}}}
+\item{mssd}{simulated multi-game setter distribution output as returned by \code{\link[=ov_simulate_multiple_setter_distribution]{ov_simulate_multiple_setter_distribution()}}}
 
 \item{label_setters_by}{string: either "id" or "name"}
 
@@ -20,14 +20,11 @@ Plot a simulated setter distribution sequence
 }
 \examples{
 \dontrun{
-  dir_dvw = "~/Documents/Donnees/VolleyBall/Dropbox/AVL_shared/AVL 2022 Womens/"
-  list_dv <- lapply(list.files(dir_dvw, ".dvw", full.names = TRUE), dv_read)
+ list_dv <- list(dv_read(ovdata_example("190301_kats_beds"))) # would normally be multiple games
+ mssd <- ov_simulate_multiple_setter_distribution(list_dv = list_dv,
+             play_phase = c("Reception", "Transition"), attack_by = "player_role",
+             n_sim = 100, setter_position_by = "front_back")
 
-  list_dv <- list(dv_read(ovdata_example("190301_kats_beds")))
-  mssd <- ov_simulate_multiple_setter_distribution(list_dv = list_dv,
-              play_phase = c("Reception", "Transition"), attack_by = "player_role",
-              n_sim = 100, setter_position_by = "front_back")
-
-  res <- ov_table_mssd(mssd, team = "SA Storm Women")
+ res <- ov_table_mssd(mssd, team = "GKS Katowice")
 }
 }
