@@ -7,6 +7,7 @@
 ov_augment_plays(
   x,
   to_add = c("receiving_team", "touch_summaries", "setters"),
+  rotation = "SHM",
   use_existing = TRUE
 )
 }
@@ -20,8 +21,11 @@ ov_augment_plays(
 \item "touch_summaries" adds a number of columns named "ts_*" that summarize a team touch (e.g. columns "ts_pass_quality", "ts_pass_evaluation_code" give the pass quality and pass evaluation code of the reception or dig associated with a given team touch)
 \item "setters" adds the columns "home_setter_id", "visiting_setter_id" (the player IDs of the home and visiting setter on court), and "setter_id", "setter_position", and "setter_front_back" (the player ID and position of the setter from the team performing the current action)
 \item "followed" adds the columns "followed_timeout", "followed_technical_timeout", and "followed_sub"
+\item "player_role" add the column "player_role" which gives the role (outside, middle, opposite, setter) for the active player on each row of \code{x}. This assumes a standard rotation as specified by \code{rotation}. Note that \code{player_role} does NOT include libero, although this can be inferred from the \code{meta} component of a full datavolley object
 \item "all" is a shortcut for all of the above
 }}
+
+\item{rotation}{string: (only relevant when \code{to_add} includes "player_role") either "SHM" (assume a setter-hitter-middle rotation order), or "SMH" (setter-middle-hitter)}
 
 \item{use_existing}{logical: if \code{TRUE} and all of the columns associated with a given \code{to_add} choice are already present in \code{x}, they won't be re-generated}
 }

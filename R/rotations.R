@@ -63,7 +63,7 @@ ov_infer_player_roles <- function(x, target_team, method, fall_back = TRUE, sett
         x$target_setter_position <- x$home_setter_position
         x$target_setter_position[is_target_team(x$visiting_team)] <- x$visiting_setter_position[is_target_team(x$visiting_team)]
 
-        pids <- na.omit(unique(dplyr::select(dplyr::filter(x, is_target_team(.data$team)), .data$player_id)))
+        pids <- na.omit(unique(dplyr::select(dplyr::filter(x, is_target_team(.data$team)), "player_id")))
         replace_nas <- function(z, with = 0) replace(z, is.na(z), with)
 
         ## by player, proportion of this players hits that are quicks or slides

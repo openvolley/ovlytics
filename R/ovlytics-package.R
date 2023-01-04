@@ -12,6 +12,7 @@
 #' @importFrom grDevices colorRamp colorRampPalette rgb
 #' @importFrom grid arrow unit
 #' @importFrom gt cols_align data_color fmt_missing gt
+#' @importFrom htmltools tags
 #' @importFrom methods as
 #' @importFrom ovdata ovdata_example
 #' @importFrom paletteer paletteer_d
