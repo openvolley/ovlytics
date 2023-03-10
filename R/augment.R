@@ -4,7 +4,7 @@
 #' @param to_add character: columns to add
 #' * "receiving_team" adds the columns "receiving_team" (team name) and "receiving_team_id"
 #' * "winners" adds the columns "set_won_by", "set_won_by_id" (the name and ID of the team that won the current set), "match_won_by", "match_won_by_id" (the name and ID of the team that won the current match), "team_won_set" and "team_won_match" (did the team making the action in the current row win the set/match), and "home_sets_won" and "visiting_sets_won" (the number of sets won by the home and visiting teams)
-#' * "touch_summaries" adds a number of columns named "ts_*" that summarize a team touch (e.g. columns "ts_pass_quality", "ts_pass_evaluation_code" give the pass quality and pass evaluation code of the reception or dig associated with a given team touch)
+#' * "touch_summaries" adds a number of columns named "ts_*" that summarize a team touch (e.g. columns "ts_pass_quality", "ts_pass_evaluation_code" give the pass quality and pass evaluation code of the reception or dig associated with a given team touch). "touch_summaries" also adds a column named `freeball_over`, which disambiguates the action of putting a freeball over the net from the action of digging such a ball. Many scouts code both of these as a "Freeball". The `freeball_over` column will be `TRUE` if it was a freeball being put over the net, and `FALSE` otherwise (including freeball digs). Freeballs over and freeball digs will still both have "Freeball" in their `skill` column
 #' * "setters" adds the columns "home_setter_id", "visiting_setter_id" (the player IDs of the home and visiting setter on court), and "setter_id", "setter_position", and "setter_front_back" (the player ID and position of the setter from the team performing the current action)
 #' * "followed" adds the columns "followed_timeout", "followed_technical_timeout", and "followed_sub"
 #' * "player_role" add the column "player_role" which gives the role (outside, middle, opposite, setter) for the active player on each row of `x`. This assumes a standard rotation as specified by `rotation`. Note that `player_role` does NOT include libero, although this can be inferred from the `meta` component of a full datavolley object
@@ -102,10 +102,10 @@ ov_augment_plays <- function(x, to_add = c("receiving_team", "touch_summaries", 
                                                        .data$temp_setter_position == 6 & .data$player_current_position == 3 ~ "opposite",
                                                        .data$temp_setter_position == 6 & .data$player_current_position == 6 ~ "setter"))
         }
-        x <- dplyr::select(x, -"temp_setter_position", "player_current_position")
+        x <- dplyr::select(x, -"temp_setter_position", -"player_current_position")
     }
 
-    if ("touch_summaries" %in% to_add && (!all(c("ts_pass_quality", "ts_set_error", "ts_pass_evaluation_code") %in% names(x)) || !use_existing)) {
+    if ("touch_summaries" %in% to_add && (!all(c("ts_pass_quality", "ts_set_error", "ts_pass_evaluation_code", "freeball_over") %in% names(x)) || !use_existing)) {
         x <- x[, setdiff(names(x), c("ts_pass_quality", "ts_set_error", "ts_pass_evaluation_code"))]
         if (!"freeball_over" %in% names(x)) {
             ## "Freeball" skill can be used both for sending a freeball to the opposition as well as receiving one, so disambiguate these usages
