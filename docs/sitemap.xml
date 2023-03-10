@@ -49,16 +49,25 @@
     <loc>/reference/ov_print_history_table.html</loc>
   </url>
   <url>
+    <loc>/reference/ov_print_rate_table.html</loc>
+  </url>
+  <url>
     <loc>/reference/ov_season_table.html</loc>
   </url>
   <url>
     <loc>/reference/ov_setter_repetition.html</loc>
   </url>
   <url>
+    <loc>/reference/ov_simulate_multiple_setter_distribution.html</loc>
+  </url>
+  <url>
     <loc>/reference/ov_simulate_setter_distribution.html</loc>
   </url>
   <url>
     <loc>/reference/ov_sort_attack_codes.html</loc>
+  </url>
+  <url>
+    <loc>/reference/ov_table_mssd.html</loc>
   </url>
   <url>
     <loc>/reference/ovlytics.html</loc>
