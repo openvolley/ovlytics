@@ -25,7 +25,7 @@ ov_augment_plays(
 \item "all" is a shortcut for all of the above
 }}
 
-\item{rotation}{string: (only relevant when \code{to_add} includes "player_role") either "SHM" (assume a setter-hitter-middle rotation order), or "SMH" (setter-middle-hitter)}
+\item{rotation}{string: (only relevant when \code{to_add} includes "player_role") either "SHM" (assume a setter-hitter-middle rotation order, i.e. outside hitter is in position 2 when the setter is in 1), or "SMH" (setter-middle-hitter)}
 
 \item{use_existing}{logical: if \code{TRUE} and all of the columns associated with a given \code{to_add} choice are already present in \code{x}, they won't be re-generated}
 }

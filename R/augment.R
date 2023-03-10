@@ -10,7 +10,7 @@
 #' * "player_role" add the column "player_role" which gives the role (outside, middle, opposite, setter) for the active player on each row of `x`. This assumes a standard rotation as specified by `rotation`. Note that `player_role` does NOT include libero, although this can be inferred from the `meta` component of a full datavolley object
 #' * "all" is a shortcut for all of the above
 #'
-#' @param rotation string: (only relevant when `to_add` includes "player_role") either "SHM" (assume a setter-hitter-middle rotation order), or "SMH" (setter-middle-hitter)
+#' @param rotation string: (only relevant when `to_add` includes "player_role") either "SHM" (assume a setter-hitter-middle rotation order, i.e. outside hitter is in position 2 when the setter is in 1), or "SMH" (setter-middle-hitter)
 #' @param use_existing logical: if `TRUE` and all of the columns associated with a given `to_add` choice are already present in `x`, they won't be re-generated
 #'
 #' @return `x` with the extra columns added
