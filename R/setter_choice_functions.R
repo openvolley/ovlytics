@@ -44,7 +44,8 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
     setter_position_by <- match.arg(setter_position_by, c("rotation", "front_back"))
     setter_position_by_var <- switch(setter_position_by,
                             "rotation" = "setter_position",
-                            "front_back" = "setter_front_back")
+                            "front_back" = "setter_front_back",
+                            "none" = "none")
 
 
     # Check that ards matches with history as well!
@@ -58,6 +59,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
 
     # If setter call we need to propagate the setter call to the subsequent attack
     if(attack_by == "setter call"){
+        if(sum(!is.na(data$set_code))< 5){stop("Not enough setter call scouted.")}
         data <- dplyr::mutate(data,
                                 set_code = case_when(.data$skill == "Attack" & lag(.data$skill) == "Set" ~ paste0(lag(.data$set_code), lag(.data$set_type)),
                                                          TRUE ~ .data$set_code),
@@ -74,7 +76,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
     if ((is.null(history_table$prior_table) || !is.data.frame(history_table$prior_table) || nrow(history_table$prior_table) < 1) && attack_options %eq% "use_history") stop("History table is missing or empty")
 
     if((!(setter_position_by_var %eq% history_table$setter_position_by_var) || !(attack_by_var %eq% history_table$attack_by_var)) && attack_options %eq% "use_history") stop("History and bandit option need to match")
-    
+
     do_shiny_progress <- tryCatch(!is.null(shiny_progress) && length(shiny_progress) == 2 && !any(is.na(shiny_progress)) && requireNamespace("shiny", quietly = TRUE), error = function(e) FALSE)
     n_outer <- nrow(dplyr::distinct(team_setter[, c("team", "setter_id")]))
     spcount <- 0L
@@ -87,6 +89,11 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
             data_game <- dplyr::filter(data, .data$team == iTeam & .data$setter_id == iSetter)
 
             if (nrow(data_game) < 20) next
+
+            if(!all(c("setter_position", "setter_front_back") %in% names(data_game))){
+                data_game$setter_position = "None specified"
+                data_game$setter_front_back = "None specified"
+            }
 
             tbleChoice <- if (packageVersion("dplyr") >= "1.0.0") {
                               dplyr::group_by(data_game, dplyr::across({{ setter_position_by_var }}), .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
@@ -111,7 +118,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
             }
             # Define the kill rate
             this <- dplyr::select(dplyr::mutate(this, KR = .data$alpha / (.data$alpha + .data$beta)), -"alpha", -"beta")
-        
+
             probTable <- tidyr::pivot_wider(dplyr::select(this, -"n"), names_from = {{ attack_by_var }}, values_from = .data$KR)
             if (FALSE) {
                 ## use team_id in plot
@@ -122,7 +129,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                                                            "-",
                                                            .data$visiting_team_score, team_name_to_abbrev(.data$visiting_team)))
             }
-        
+
             tableBB <- dplyr::left_join(dplyr::select(tableBB, "set_number", "point_id", "score",{{ setter_position_by_var }}, "ts_pass_quality", {{ attack_by_var }}, "evaluation", "video_time"),
                                         probTable, by = c({{ setter_position_by_var }}, "ts_pass_quality"))
 
@@ -166,7 +173,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                 res_setter_position[res_sim_num == nS ] <- tableBB[[setter_position_by_var]]
                 res_ts_pass_quality[res_sim_num == nS] <- tableBB[["ts_pass_quality"]]
                 res_point_id[res_sim_num == nS] <- tableBB[["point_id"]]
-            
+
                 for (d in seq_len(duration)) {
                     choiceD <- na.omit(choice[d, ])
                     theta <- vapply(choiceD, function(x) rbeta(1, postPar[1, x], postPar[2, x]), FUN.VALUE = numeric(1), USE.NAMES = FALSE)
@@ -267,7 +274,7 @@ ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, label_setters_by = "nam
     # 'period_on_court' as a period of successive points played
 
     dataplays <- ov_augment_plays(plays(ssd$raw_data), to_add = c("touch_summaries", "setters"))
-    temp <-  dplyr::select(dplyr::slice(dplyr::group_by(dplyr::filter(dataplays,!is.na(.data$skill) & !is.na(.data$home_setter_id) & !is.na(.data$visiting_setter_id)) ,.data$match_id, .data$point_id), 1L), "match_id", "point_id", "home_setter_id", "visiting_setter_id")
+    temp <-  dplyr::select(dplyr::slice(dplyr::group_by(dplyr::filter(dataplays,!is.na(.data$skill) & !is.na(.data$home_setter_id) | !is.na(.data$visiting_setter_id)) ,.data$match_id, .data$point_id), 1L), "match_id", "point_id", "home_setter_id", "visiting_setter_id")
     temp$home_setter_period_on_court <- paste0(temp$home_setter_id, expand_rle(rle(temp$home_setter_id)$lengths))
     temp$visiting_setter_period_on_court <- paste0(temp$visiting_setter_id, expand_rle(rle(temp$visiting_setter_id)$lengths))
 
@@ -375,7 +382,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
                                     "setter_front_back" = c("front", "back"))
 
     if (attack_by_var == "attack_code") {
-   
+
         ## hmm, the meta$attacks data.frame can be a bit messy ... the attack location is either "X8" or "V8" or "start_coordinate"
         atk_loc_var <- head(intersect(c("X8" ,"V8", "start_coordinate"), names(ssd$raw_data$meta$attacks)), 1)
         if (length(atk_loc_var) < 1 || !atk_loc_var %in% names(ssd$raw_data$meta$attacks)) stop("could not plot attack distribution, missing attack start location in meta$attacks table")
@@ -383,7 +390,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
         attack_zones_actual <-cbind(attack_zones_actual, dv_index2xy(attack_zones_actual[[atk_loc_var]]))
 
         attack_zones_actual$rotation <- forcats::fct_relevel(as.factor(as.character(unlist(attack_zones_actual[,setter_position_by_var]))), setter_rotation_levels)
-    
+
         attack_zones_sim <- left_join(attack_zones_sim, dplyr::select(ssd$raw_data$meta$attacks, "code", {{ atk_loc_var }}, "type"), by = c("attack_choice" = "code"))
         attack_zones_sim <- mutate(cbind(attack_zones_sim, dv_index2xy(attack_zones_sim[[atk_loc_var]])),
                                    rotation = forcats::fct_relevel(as.factor(as.character(.data$setter_position)), setter_rotation_levels))
@@ -412,7 +419,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
                                    rotation = forcats::fct_relevel(as.factor(as.character(.data$setter_position)), setter_rotation_levels))
         attack_zones_actual <- cbind(attack_zones_actual, dv_xy(attack_zones_actual$start_zone, end = "lower"))
         attack_zones_actual$rotation <- forcats::fct_relevel(as.factor(as.character(unlist(attack_zones_actual[,setter_position_by_var]))), setter_rotation_levels)
-    
+
         gActual <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_actual, .data$team == xx & .data$setter == yy),
                           lab = paste0(round(.data$rate, 2) * 100, "%")),
@@ -431,14 +438,14 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
         })
     }
     if (attack_by_var == "skill_type") {
-    
+
         attack_zones_sim <- mutate(attack_zones_sim,
                                    rotation = forcats::fct_relevel(as.factor(as.character(.data$setter_position)), setter_rotation_levels),
                                    attack_choice = forcats::fct_relevel(as.factor(as.character(.data$attack_choice)), c("Quick ball attack","Half ball attack","Head ball attack","High ball attack")))
         attack_zones_actual <- mutate(attack_zones_actual,
                                       skill_type = forcats::fct_relevel(as.factor(as.character(.data$skill_type)), c("Quick ball attack","Half ball attack","Head ball attack","High ball attack")))
         attack_zones_actual$rotation <- forcats::fct_relevel(as.factor(as.character(unlist(attack_zones_actual[,setter_position_by_var]))), setter_rotation_levels)
-    
+
         gActual <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_actual, .data$team == xx & .data$setter == yy),
                           lab = paste0(round(.data$rate, 2) * 100, "%")), aes_string(x = "skill_type"))  +
@@ -459,7 +466,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
         })
     }
     if (attack_by_var == "set_code") {
-    
+
         attack_zones_sim <- mutate(attack_zones_sim,
                                    rotation = forcats::fct_relevel(as.factor(as.character(.data$setter_position)), setter_rotation_levels),
                                    attack_choice = forcats::fct_relevel(as.factor(as.character(.data$attack_choice)), levels(.data$attack_choice)),
@@ -471,9 +478,9 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
                                    setter_call = stringr::str_trunc(as.character(.data$attack_choice), 2, side = "right", ellipsis = ""),
                                    setter_call = case_when(.data$setter_call == "NA" ~ "No Call",
                                                            TRUE ~ .data$setter_call))
-    
+
         attack_zones_sim <- mutate(cbind(attack_zones_sim, dv_xy(as.numeric(attack_zones_sim$start_zone), end = "lower")))
-    
+
         if(setter_position_by_var == "setter_position"){
         attack_zones_actual <- mutate(attack_zones_actual, start_zone = case_when(stringr::str_ends(.data$set_code, "F") ~ 4,
                                                                                   stringr::str_ends(.data$set_code, "C") ~ 3,
@@ -495,27 +502,27 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
                                                                   TRUE ~ .data$setter_call))
         }
         attack_zones_actual <- cbind(attack_zones_actual, dv_xy(attack_zones_actual$start_zone, end = "lower"))
-    
+
         attack_zones_actual$rotation <- forcats::fct_relevel(as.factor(as.character(unlist(attack_zones_actual[,setter_position_by_var]))), setter_rotation_levels)
-    
+
         calls_arrows <- dplyr::filter(ssd$raw_data$meta$sets, .data$start_coordinate > 0)
         calls_arrows <- cbind(calls_arrows,
                              datavolley::dv_index2xy(calls_arrows$start_coordinate),
                              datavolley::dv_index2xy(calls_arrows$mid_coordinate),
                              datavolley::dv_index2xy(calls_arrows$end_coordinate))
-    
+
         colnames(calls_arrows)[(ncol(calls_arrows)-5):ncol(calls_arrows)] <- c("start_x", "start_y","mid_x","mid_y", "end_x", "end_y")
-    
+
         calls_arrows <- mutate(dplyr::rename(select(calls_arrows, .data$code, .data$start_x, .data$start_y,  .data$mid_x, .data$mid_y, .data$end_x, .data$end_y),
                                "setter_call" = "code"))
-    
+
         calls_arrows_f <- NULL
         for(srl in setter_rotation_levels){
             calls_arrows_tmp <- mutate(calls_arrows, rotation = srl)
             calls_arrows_f <- bind_rows(calls_arrows_f, calls_arrows_tmp)
         }
         calls_arrows_f$rotation <- forcats::fct_relevel(as.factor(calls_arrows_f$rotation), setter_rotation_levels)
-    
+
         gActual <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_actual, .data$team == xx & .data$setter == yy),
                           lab = paste0(round(.data$rate, 2) * 100, "%")),
@@ -527,7 +534,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
                               arrow = arrow(length = unit(0.03, "npc"))) +
                 ggtitle(twrapf(paste0("Actual distribution - ", yy, " (", xx, ")")))
         })
-    
+
         gSim <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_sim, .data$team == xx & .data$setter == yy),
                           lab = paste0(round(.data$rate, 2) * 100, "%")),
@@ -539,7 +546,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
                              arrow = arrow(length = unit(0.03, "npc"))) +
                 theme(legend.position = "none") + ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")")))
         })
-    
+
     }
     if (output == "plot") {
         wrap_plots(c(gActual, gSim), nrow = 2) + plot_layout(guides = "collect")
@@ -615,7 +622,7 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
             ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")")))
 
         cd_setter[[setter_position_by_var]] <- stringr::str_trunc(cd_setter[[setter_position_by_var]],1 ,side = "right", ellipsis = "")
-    
+
         g2 <- ggplot(data = dplyr::filter(cd_setter, .data$team == xx, .data$setter == yy), aes_string(x = "time")) +
                 geom_tile(aes_string(fill = "ts_pass_quality", y ="1")) +
             geom_text(aes_string(y="1", label = setter_position_by_var), size = 2)+

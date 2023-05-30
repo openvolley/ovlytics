@@ -171,25 +171,40 @@ ov_augment_plays <- function(x, to_add = c("receiving_team", "touch_summaries", 
     }
 
     if ("setters" %in% to_add && (!all(c("home_setter_id", "visiting_setter_id", "setter_id", "setter_position", "setter_front_back") %in% names(x)) || !use_existing)) {
-        x <- x[, setdiff(names(x), c("home_setter_id", "visiting_setter_id", "setter_id", "setter_position", "setter_front_back"))]
-        x <- mutate(x, home_setter_id = case_when(.data$home_setter_position == 1 ~ .data$home_player_id1,
-                                                  .data$home_setter_position == 2 ~ .data$home_player_id2,
-                                                  .data$home_setter_position == 3 ~ .data$home_player_id3,
-                                                  .data$home_setter_position == 4 ~ .data$home_player_id4,
-                                                  .data$home_setter_position == 5 ~ .data$home_player_id5,
-                                                  .data$home_setter_position == 6 ~ .data$home_player_id6),
-                    visiting_setter_id = case_when(.data$visiting_setter_position == 1 ~ .data$visiting_player_id1,
-                                                   .data$visiting_setter_position == 2 ~ .data$visiting_player_id2,
-                                                   .data$visiting_setter_position == 3 ~ .data$visiting_player_id3,
-                                                   .data$visiting_setter_position == 4 ~ .data$visiting_player_id4,
-                                                   .data$visiting_setter_position == 5 ~ .data$visiting_player_id5,
-                                                   .data$visiting_setter_position == 6 ~ .data$visiting_player_id6),
-                    setter_id = case_when(.data$team_id == .data$home_team_id ~ .data$home_setter_id,
-                                          .data$team_id == .data$visiting_team_id ~ .data$visiting_setter_id),
-                    setter_position = case_when(.data$team == .data$home_team ~ .data$home_setter_position,
-                                                .data$team == .data$visiting_team ~ .data$visiting_setter_position),
-                    setter_front_back = case_when(.data$setter_position %in% c(1, 5, 6) ~ "back",
-                                                  .data$setter_position %in% c(2, 3, 4) ~ "front"))
+        # Differentiate indoor and beach:
+
+        if(all(c("home_player_id3", "home_player_id4", "home_player_id5", "home_player_id6") %in% names(x))){
+            # INDOOR: The setter is identified per 6 player rotation, scouted in datavolley.
+            x <- x[, setdiff(names(x), c("home_setter_id", "visiting_setter_id", "setter_id", "setter_position"))]
+            x <- mutate(x, home_setter_id = case_when(.data$home_setter_position == 1 ~ .data$home_player_id1,
+                                                      .data$home_setter_position == 2 ~ .data$home_player_id2,
+                                                      .data$home_setter_position == 3 ~ .data$home_player_id3,
+                                                      .data$home_setter_position == 4 ~ .data$home_player_id4,
+                                                      .data$home_setter_position == 5 ~ .data$home_player_id5,
+                                                      .data$home_setter_position == 6 ~ .data$home_player_id6),
+                        visiting_setter_id = case_when(.data$visiting_setter_position == 1 ~ .data$visiting_player_id1,
+                                                       .data$visiting_setter_position == 2 ~ .data$visiting_player_id2,
+                                                       .data$visiting_setter_position == 3 ~ .data$visiting_player_id3,
+                                                       .data$visiting_setter_position == 4 ~ .data$visiting_player_id4,
+                                                       .data$visiting_setter_position == 5 ~ .data$visiting_player_id5,
+                                                       .data$visiting_setter_position == 6 ~ .data$visiting_player_id6),
+                        setter_id = case_when(.data$team_id == .data$home_team_id ~ .data$home_setter_id,
+                                              .data$team_id == .data$visiting_team_id ~ .data$visiting_setter_id),
+                        setter_position = case_when(.data$team == .data$home_team ~ .data$home_setter_position,
+                                                    .data$team == .data$visiting_team ~ .data$visiting_setter_position),
+                        setter_front_back = case_when(.data$setter_position %in% c(1, 5, 6) ~ "back",
+                                                      .data$setter_position %in% c(2, 3, 4) ~ "front"))
+        } else {
+            # BEACH: Ha. Well. The setter is the one not attacking.
+            x <- mutate(x, home_setter_id = case_when(.data$player_id == .data$home_player_id1 & .data$skill == "Attack" ~ .data$home_player_id2,
+                                                      .data$player_id == .data$home_player_id2 & .data$skill == "Attack" ~ .data$home_player_id1,
+                                                      TRUE ~ NA_character_),
+                        visiting_setter_id = case_when(.data$player_id == .data$visiting_player_id1 & .data$skill == "Attack" ~ .data$visiting_player_id2,
+                                                       .data$player_id == .data$visiting_player_id2 & .data$skill == "Attack" ~ .data$visiting_player_id1,
+                                                       TRUE ~ NA_character_),
+                        setter_id = case_when(.data$team_id == .data$home_team_id ~ .data$home_setter_id,
+                                              .data$team_id == .data$visiting_team_id ~ .data$visiting_setter_id))
+        }
     }
     x
 }
