@@ -20,7 +20,7 @@ ov_augment_plays <- function(x, to_add = c("receiving_team", "touch_summaries", 
     assert_that(is.character(to_add))
     assert_that(is.flag(use_existing), !is.na(use_existing))
     to_add <- tolower(to_add)
-    known_to_add <- c("receiving_team", "touch_summaries", "setters", "followed", "winners", "player_role") ## the allowed values
+    known_to_add <- c("receiving_team", "touch_summaries", "setters", "followed", "winners", "player_role", "attacker_name") ## the allowed values
     if ("all" %in% to_add) to_add <- known_to_add
     if (!all(to_add %in% known_to_add)) {
         warning("unrecognized 'to_add' values, ignoring: ", paste0(setdiff(to_add, known_to_add)))

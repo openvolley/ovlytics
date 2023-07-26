@@ -16,6 +16,7 @@ ov_simulate_setter_distribution(
   history_table = NULL,
   attack_by = "code",
   exclude_attacks = c("PR"),
+  rotation = "SHM",
   shiny_progress = NULL
 )
 }
@@ -38,9 +39,11 @@ ov_simulate_setter_distribution(
 
 \item{history_table}{list: (only if \code{attack_options} is "use_history") the object returned by \code{\link[=ov_create_history_table]{ov_create_history_table()}}}
 
-\item{attack_by}{string: either "code", "zone", "tempo", "setter call"}
+\item{attack_by}{string: either "code", "zone", "tempo", "setter call", "attacker_name", "player_role"}
 
 \item{exclude_attacks}{character: vector of attack codes to exclude}
+
+\item{rotation}{string: (only relevant when \code{attack_by} is "player_role") either "SHM" (assume a setter-hitter-middle rotation order), or "SMH" (setter-middle-hitter)}
 
 \item{shiny_progress}{numeric: an optional two-element vector. If not \code{NULL} or \code{NA}, \code{\link[shiny:withProgress]{shiny::setProgress()}} calls will be made during simulation with \code{value}s in this range}
 }

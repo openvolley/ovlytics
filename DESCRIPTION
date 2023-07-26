@@ -16,16 +16,20 @@ Imports:
     ggplot2,
     grid,
     gt,
+    htmltools,
     MASS,
     methods,
     ovdata,
     paletteer,
     patchwork,
     purrr,
+    reactable,
+    reactablefmtr,
     rlang,
     scales,
     stringr,
-    tidyr
+    tidyr,
+    viridisLite
 Suggests:
     covr,
     shiny,
