@@ -309,7 +309,7 @@ ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, label_setters_by = "nam
     g <- ggplot(tbC) +
         geom_line(data = bbtrajqi, aes_string(x = "point_id", y = "trajqim", group = "period_on_court"), col = "orange") +
         geom_ribbon(data = bbtrajqi, aes_string(x = "point_id", ymin = "trajqi05", ymax = "trajqi95", group = "period_on_court"), col = "white", fill = "orange", alpha = 0.25) +
-        geom_line(aes_string(x = "point_id", y = "pts", group = "period_on_court", linetype = "setter")) +
+        geom_line(aes_string(x = "point_id", y = "pts", linetype = "setter")) + ## previously also group = "period_on_court", but this causes problems with varying linetype and isn't needed anyway?
         labs(x = "Point ID", y = "Cumulative points scored") + facet_wrap("team", scales = "free")
 
     if (overlay_set_number) {

@@ -32,7 +32,11 @@ test_that("augmentation works", {
     expect_equal(names(temp)[1], "middle")
 
     x0 <- x
-    x$setter_position <- -1L
-    expect_identical(x0, ov_augment_plays(x, "all", use_existing = FALSE)) ## regenerate all cols
-    expect_false(identical(x0, ov_augment_plays(x, "all", use_existing = TRUE)))
+    x$setter_position <- -1L ## this is an "augemented" column, and it's now different to what's in x
+    x2 <- ov_augment_plays(x, "all", use_existing = FALSE)
+    expect_true(setequal(names(x0), names(x2)))
+    expect_identical(x0, x2[, names(x0)]) ## regenerate all cols, compare ensuring that columns are ordered the same
+    x2 <- ov_augment_plays(x, "all", use_existing = TRUE)
+    expect_true(setequal(names(x0), names(x2)))
+    expect_false(identical(x0, x2[, names(x0)]))
 })
