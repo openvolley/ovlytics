@@ -2,7 +2,7 @@
 % Please edit documentation in R/setter_choice_functions.R
 \name{ov_table_mssd}
 \alias{ov_table_mssd}
-\title{Plot a simulated setter distribution sequence}
+\title{Table of a simulated multi-game setter distribution sequence}
 \usage{
 ov_table_mssd(mssd, label_setters_by = "name", team = NULL, nrows = 50)
 }
@@ -16,7 +16,7 @@ ov_table_mssd(mssd, label_setters_by = "name", team = NULL, nrows = 50)
 \item{nrows}{integer: number of rows per page in the table}
 }
 \description{
-Plot a simulated setter distribution sequence
+Table of a simulated multi-game setter distribution sequence
 }
 \examples{
 \dontrun{

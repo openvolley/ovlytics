@@ -921,7 +921,7 @@ ov_print_history_table <- function(history_table, team, setter_id){
                      dplyr::across(dplyr::matches("ts_pass_quality"), factor, levels = c("Perfect", "Good", "OK", "Poor")),
                      kr = round(.data$alpha / (.data$alpha + .data$beta), 2))
 
-    ht <- dplyr::select(dplyr::filter(ht_tmp, .data$team %eq% team_select, .data$setter_id %eq% setter_select), dplyr::matches("setter_front_back"), dplyr::matches("setter_position"), .data$ts_pass_quality, "kr", dplyr::matches("start_zone"), dplyr::matches("set_code"), dplyr::matches("attack_code"), dplyr::matches("skill_type"))
+    ht <- dplyr::filter(ht_tmp, .data$team %eq% team_select, .data$setter_id %eq% setter_select) %>% dplyr::select(dplyr::matches("setter_front_back"), dplyr::matches("setter_position"), "ts_pass_quality", "kr", dplyr::matches("start_zone"), dplyr::matches("set_code"), dplyr::matches("attack_code"), dplyr::matches("skill_type"))
 
     ht <- group_by(dplyr::arrange(pivot_wider(ht, names_from = {{ attack_by_var }}, values_from = "kr"), {{ setter_position_by_var }}, .data$ts_pass_quality), dplyr::across({{ setter_position_by_var }}))
     gt::gt(ht, rowname_col = "ts_pass_quality")  %>%
@@ -960,7 +960,7 @@ ov_print_rate_table <- function(ssd, team, setter_id){
 }
 
 
-#' Plot a simulated setter distribution sequence
+#' Table of a simulated multi-game setter distribution sequence
 #'
 #' @param mssd simulated multi-game setter distribution output as returned by [ov_simulate_multiple_setter_distribution()]
 #' @param label_setters_by string: either "id" or "name"
@@ -979,8 +979,6 @@ ov_print_rate_table <- function(ssd, team, setter_id){
 #' @export
 ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 50) {
     team_select <- team
-
-    ## TO CHECK: there was a setter parameter for this function, but not used, so removed it. Is it needed?
 
     rating_column <- function(maxWidth = 55, ...) reactable::colDef(maxWidth = maxWidth, align = "center", class = "cell number", ...)
 
@@ -1054,7 +1052,7 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
                                              date = ssd$raw_data$meta$match$date))
     }
 
-    full_dd_table <- full_dd %>% ungroup() %>% ##dplyr::rowwise() %>%
+    full_dd_table <- full_dd %>% ungroup() %>%
         mutate(Opponent = case_when(.data$team == .data$away_team ~ paste0("@", .data$home_team),
                                     .data$team == .data$home_team ~ .data$away_team),
                empty_space = "") %>%
