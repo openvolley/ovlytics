@@ -17,3 +17,17 @@ most_common_value <- function(x, na.rm=FALSE) {
 ## convenience shortcuts
 mean_narm <- function(...) mean(..., na.rm = TRUE)
 sum_narm <- function(...) sum(..., na.rm = TRUE)
+
+
+## weighted variance
+## wt should be counts
+var_weighted <- function (x, wt, na.rm = TRUE) {
+    if (na.rm) {
+        idx <- !is.na(x) & !is.na(wt)
+        x <- x[idx]
+        wt <- wt[idx]
+    }
+    if (sum(wt, na.rm = TRUE) <= 1) return(NA_real_)
+    x_unmean <- x - sum(wt * x) / sum(wt) ## remove weighted mean
+    sum(wt * (x_unmean ^ 2)) / (sum(wt) - 1)
+}
