@@ -531,7 +531,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
             calls_arrows_tmp <- mutate(calls_arrows, rotation = srl)
             calls_arrows_f <- bind_rows(calls_arrows_f, calls_arrows_tmp)
         }
-        calls_arrows_f$rotation <- forcats::fct_relevel(as.factor(calls_arrows_f$rotation), setter_rotation_levels)
+        suppressWarnings(calls_arrows_f$rotation <- forcats::fct_relevel(as.factor(calls_arrows_f$rotation), setter_rotation_levels))
 
         gActual <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_actual, .data$team == xx & .data$setter == yy),

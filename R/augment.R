@@ -112,7 +112,7 @@ ov_augment_plays <- function(x, to_add = c("receiving_team", "touch_summaries", 
             x <- mutate(x, freeball_over = .data$skill %eq% "Freeball" &
                                lag(.data$match_id) %eq% .data$match_id & ##lead(.data$match_id) %eq% .data$match_id,
                                lag(.data$point_id) %eq% .data$point_id & ##lead(.data$point_id) %eq% .data$point_id,
-                               ((!is.na(lead(.data$team)) & lead(.data$team) != .data$team) | lag(.data$team) %eq% .data$team))
+                               ((!is.na(lead(.data$team)) & !is.na(lead(.data$team)) & lead(.data$team) != .data$team) | lag(.data$team) %eq% .data$team))
         }
         ts1 <- dplyr::filter(ungroup(x), !is.na(.data$team))
         touchsum <- dplyr::summarize(group_by(ts1, .data$match_id, .data$team, .data$team_touch_id),
