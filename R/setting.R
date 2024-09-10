@@ -83,26 +83,26 @@ ov_setter_repetition <- function(x, setter_id, setter_name, exclude_attacks = c(
                        was_error = .data$evaluation == "Error",
                        was_blocked = .data$evaluation == "Blocked")
     ## now summarize by player (attacker) and setter
-    set_reps <- ungroup(dplyr::summarize(group_by(set_reps, .data$team, .data$setter_name, .data$setter_id, .data$player_name, .data$player_id),
-                                         category = c("Overall", "After kill", "After error", "After blocked"),
-                                         ## calculate the number of opportunities for repeating that we had
-                                         opportunities = c(sum(.data$not_last_attack), sum(.data$was_kill & .data$not_last_attack), sum(.data$was_error & .data$not_last_attack), sum(.data$was_blocked & .data$not_last_attack)),
-                                         ## and the number of repeats from those opportunities
-                                         repeats = c(sum(.data$next_was_repeat, na.rm = TRUE), sum(.data$was_kill & .data$next_was_repeat, na.rm = TRUE), sum(.data$was_error & .data$next_was_repeat, na.rm = TRUE), sum(.data$was_blocked & .data$next_was_repeat, na.rm = TRUE)),
-                                         ## and finally the repeat %
-                                         `repeat%` = .data$repeats/.data$opportunities*100))
+    set_reps <- set_reps %>% group_by(.data$team, .data$setter_name, .data$setter_id, .data$player_name, .data$player_id) %>%
+        dplyr::reframe(category = c("Overall", "After kill", "After error", "After blocked"),
+                       ## calculate the number of opportunities for repeating that we had
+                       opportunities = c(sum(.data$not_last_attack), sum(.data$was_kill & .data$not_last_attack), sum(.data$was_error & .data$not_last_attack), sum(.data$was_blocked & .data$not_last_attack)),
+                       ## and the number of repeats from those opportunities
+                       repeats = c(sum(.data$next_was_repeat, na.rm = TRUE), sum(.data$was_kill & .data$next_was_repeat, na.rm = TRUE), sum(.data$was_error & .data$next_was_repeat, na.rm = TRUE), sum(.data$was_blocked & .data$next_was_repeat, na.rm = TRUE)),
+                       ## and finally the repeat %
+                       `repeat%` = .data$repeats / .data$opportunities * 100) %>% ungroup
 
     ## for 'repeats within a rally" it's basically the same, but we group by match and point rather than match and set
-    set_reps_rallies <- mutate(group_by(ax, .data$match_id, .data$point_id, .data$team, .data$setter_id),
-                               not_last_attack = row_number() < n(),
-                               was_repeat = lag(.data$player_id, default = "") == .data$player_id)
+    set_reps_rallies <- ax %>% group_by(.data$match_id, .data$point_id, .data$team, .data$setter_id) %>%
+        mutate(not_last_attack = row_number() < n(),
+               was_repeat = lag(.data$player_id, default = "") == .data$player_id)
     ## summarize by player and setter
-    set_reps_rallies <- ungroup(dplyr::summarize(group_by(set_reps_rallies, .data$team, .data$player_id, .data$player_name, .data$setter_id, .data$setter_name),
-                                                 category = "Within rally",
-                                                 opportunities = sum(.data$not_last_attack), ## the number of opportunities for a player is the number of attacks that they made, excluding the last attack of each rally (because there is no opportunity to repeat after these)
-                                                 repeats = sum(.data$was_repeat),
-                                                 `repeat%` = .data$repeats/.data$opportunities*100))
+    set_reps_rallies <- set_reps_rallies %>% group_by(.data$team, .data$player_id, .data$player_name, .data$setter_id, .data$setter_name) %>%
+        dplyr::summarize(category = "Within rally",
+                         opportunities = sum(.data$not_last_attack), ## the number of opportunities for a player is the number of attacks that they made, excluding the last attack of each rally (because there is no opportunity to repeat after these)
+                         repeats = sum(.data$was_repeat),
+                         `repeat%` = .data$repeats/.data$opportunities*100) %>% ungroup
 
     set_reps <- dplyr::select(set_reps, "team", "setter_name", "setter_id", everything())
-    dplyr::arrange(bind_rows(set_reps, set_reps_rallies), .data$team, .data$setter_id, .data$player_name, .data$player_id)
+    bind_rows(set_reps, set_reps_rallies) %>% dplyr::arrange(.data$team, .data$setter_id, .data$player_name, .data$player_id)
 }
