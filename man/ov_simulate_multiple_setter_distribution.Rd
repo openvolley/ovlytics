@@ -21,7 +21,7 @@ ov_simulate_multiple_setter_distribution(
 )
 }
 \arguments{
-\item{list_dv}{list: list of datavolley object as returned by \code{\link[datavolley:read_dv]{datavolley::dv_read()}}}
+\item{list_dv}{list: list of datavolley object as returned by \code{\link[datavolley:dv_read]{datavolley::dv_read()}}}
 
 \item{play_phase}{character: one or both of "Reception", "Transition"}
 
@@ -51,7 +51,7 @@ ov_simulate_multiple_setter_distribution(
 Simulate a Bayesian Bandit choice for a given set of probabilities and a number of points for multiple games
 }
 \examples{
-list_dv <- list(dv_read(ovdata_example("190301_kats_beds")))
+list_dv <- list(dv_read(ovdata_example("NCA-CUB")))
 system.time({
   mssd <- ov_simulate_multiple_setter_distribution(list_dv = list_dv, play_phase = "Reception",
                n_sim = 100, setter_position_by = "front_back")

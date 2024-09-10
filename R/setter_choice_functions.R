@@ -25,7 +25,7 @@ team_name_to_abbrev <- function(x, upper = FALSE) {
 #' @seealso [ov_create_history_table()]
 #'
 #' @examples
-#' dvw <- ovdata_example("190301_kats_beds")
+#' dvw <- ovdata_example("NCA-CUB")
 #' system.time({
 #'   ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception",
 #'                                          n_sim = 100, attack_by = "setter call",
@@ -250,7 +250,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
 #' @seealso [ov_simulate_setter_distribution()]
 #'
 #' @examples
-#' list_dv <- list(dv_read(ovdata_example("190301_kats_beds")))
+#' list_dv <- list(dv_read(ovdata_example("NCA-CUB")))
 #' system.time({
 #'   mssd <- ov_simulate_multiple_setter_distribution(list_dv = list_dv, play_phase = "Reception",
 #'                n_sim = 100, setter_position_by = "front_back")
@@ -272,7 +272,7 @@ ov_simulate_multiple_setter_distribution <- function(list_dv, play_phase = c("Re
 #' @param font_size numeric: font size
 #'
 #' @examples
-#' dvw <- ovdata_example("190301_kats_beds")
+#' dvw <- ovdata_example("NCA-CUB")
 #' setter <- ov_simulate_setter_distribution(dvw = dvw,
 #'                                           n_sim = 150, attack_by = "zone")
 #' ov_plot_ssd(setter, overlay_set_number = TRUE)
@@ -371,7 +371,7 @@ ssd_set_setter_labels <- function(ssd, label_setters_by = "id") {
 #' @param output string: either "plot" or "list"
 #'
 #' @examples
-#' dvw <- ovdata_example("190301_kats_beds")
+#' dvw <- ovdata_example("NCA-CUB")
 #' setter <- ov_simulate_setter_distribution(dvw = dvw, play_phase = c("Reception", "Transition"),
 #'                                           n_sim = 100, attack_by = "code")
 #' ov_plot_distribution(setter)
@@ -628,7 +628,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
 #' @param output string: either "plot" or "list"
 #'
 #' @examples
-#' dvw <- ovdata_example("190301_kats_beds")
+#' dvw <- ovdata_example("NCA-CUB")
 #' ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = c("Reception"),
 #'                                        n_sim = 100, attack_by = "zone",
 #'                                        setter_position_by = "front_back")
@@ -724,14 +724,14 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
 #'
 #' @examples
 #' ## use this file to create the priors
-#' hist_dvw <- ovdata_example("190301_kats_beds")
+#' hist_dvw <- ovdata_example("NCA-CUB")
 #' history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "setter call",
 #'                                    setter_position_by = "front_back")
 #'
 #' ## use it on another file (here, the same file for demo purposes)
 #' ## usually the history would be from a reference set of previous matches
 #'
-#' dvw <- ovdata_example("190301_kats_beds")
+#' dvw <- ovdata_example("NCA-CUB")
 #' setter <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception", n_sim = 100,
 #'                                   attack_by = "setter call", attack_options = "use_history",
 #'                                   setter_position_by = "front_back",
@@ -820,7 +820,7 @@ ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition
 #' @param setter_id string: setter_id
 #'
 #' @examples
-#' hist_dvw <- ovdata_example("190301_kats_beds")
+#' hist_dvw <- ovdata_example("NCA-CUB")
 #' history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "tempo",
 #'                                                     setter_position_by = "front_back",
 #'                                                     normalize_parameters = FALSE)
@@ -880,7 +880,7 @@ ov_plot_history_table <- function(history_table, team, setter_id){
 #' @param setter_id string: setter_id
 #'
 #' @examples
-#' hist_dvw <- ovdata_example("190301_kats_beds")
+#' hist_dvw <- ovdata_example("NCA-CUB")
 #' history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone")
 #' team = history_table$prior_table$team[1]
 #' setter_id = history_table$prior_table$setter_id[1]
@@ -934,7 +934,7 @@ ov_print_history_table <- function(history_table, team, setter_id){
 #' @param setter_id string: setter_id
 #'
 #' @examples
-#' dvw <- ovdata_example("190301_kats_beds")
+#' dvw <- ovdata_example("NCA-CUB")
 #' system.time({
 #'   ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception",
 #'                                          n_sim = 500, setter_position_by = "front_back")
@@ -965,12 +965,12 @@ ov_print_rate_table <- function(ssd, team, setter_id){
 #'
 #' @examples
 #' \dontrun{
-#'  list_dv <- list(dv_read(ovdata_example("190301_kats_beds"))) # would normally be multiple games
+#'  list_dv <- list(dv_read(ovdata_example("NCA-CUB"))) # would normally be multiple games
 #'  mssd <- ov_simulate_multiple_setter_distribution(list_dv = list_dv,
 #'              play_phase = c("Reception", "Transition"), attack_by = "player_role",
 #'              n_sim = 100, setter_position_by = "front_back")
 #'
-#'  res <- ov_table_mssd(mssd, team = "GKS Katowice")
+#'  res <- ov_table_mssd(mssd, team = "NICARAGUA")
 #' }
 #' @export
 ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 50) {

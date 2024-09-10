@@ -12,7 +12,7 @@ ov_augment_plays(
 )
 }
 \arguments{
-\item{x}{data.frame: the \code{plays} data.frame as returned by \code{\link[datavolley:read_dv]{datavolley::read_dv()}} or \code{\link[peranavolley:pv_read]{peranavolley::pv_read()}}}
+\item{x}{data.frame: the \code{plays} data.frame as returned by \code{\link[datavolley:dv_read]{datavolley::read_dv()}} or \code{\link[peranavolley:pv_read]{peranavolley::pv_read()}}}
 
 \item{to_add}{character: columns to add
 \itemize{

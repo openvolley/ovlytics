@@ -27,7 +27,7 @@ ov_plot_distribution(
 Court plot of a real and simulated setter distribution
 }
 \examples{
-dvw <- ovdata_example("190301_kats_beds")
+dvw <- ovdata_example("NCA-CUB")
 setter <- ov_simulate_setter_distribution(dvw = dvw, play_phase = c("Reception", "Transition"),
                                           n_sim = 100, attack_by = "code")
 ov_plot_distribution(setter)

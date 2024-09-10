@@ -17,7 +17,7 @@ ov_plot_history_table(history_table, team, setter_id)
 Plot the prior table
 }
 \examples{
-hist_dvw <- ovdata_example("190301_kats_beds")
+hist_dvw <- ovdata_example("NCA-CUB")
 history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "tempo",
                                                     setter_position_by = "front_back",
                                                     normalize_parameters = FALSE)

@@ -13,8 +13,8 @@
 #'
 #' @examples
 #'
-#' x <- plays(ovdata_example("190301_kats_beds", as = "parsed"))
-#' set_reps <- ov_setter_repetition(x, setter_name = "Lukas Tichacek")
+#' x <- plays(ovdata_example("NCA-CUB", as = "parsed"))
+#' set_reps <- ov_setter_repetition(x, setter_name = "LOLETTE RODRIGUEZ")
 #'
 #' library(ggplot2)
 #' ggplot(set_reps, aes(x = player_name, y = `repeat%`)) + geom_col() +

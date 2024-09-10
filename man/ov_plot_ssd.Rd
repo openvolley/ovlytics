@@ -24,7 +24,7 @@ ov_plot_ssd(
 Plot a simulated setter distribution
 }
 \examples{
-dvw <- ovdata_example("190301_kats_beds")
+dvw <- ovdata_example("NCA-CUB")
 setter <- ov_simulate_setter_distribution(dvw = dvw,
                                           n_sim = 150, attack_by = "zone")
 ov_plot_ssd(setter, overlay_set_number = TRUE)

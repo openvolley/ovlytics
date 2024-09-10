@@ -17,7 +17,7 @@ ov_print_history_table(history_table, team, setter_id)
 Print the prior table
 }
 \examples{
-hist_dvw <- ovdata_example("190301_kats_beds")
+hist_dvw <- ovdata_example("NCA-CUB")
 history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "zone")
 team = history_table$prior_table$team[1]
 setter_id = history_table$prior_table$setter_id[1]

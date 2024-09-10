@@ -14,7 +14,7 @@ ov_setter_repetition(
 )
 }
 \arguments{
-\item{x}{data.frame: the \code{plays} data.frame as returned by \code{\link[datavolley:read_dv]{datavolley::read_dv()}} or \code{\link[peranavolley:pv_read]{peranavolley::pv_read()}}}
+\item{x}{data.frame: the \code{plays} data.frame as returned by \code{\link[datavolley:dv_read]{datavolley::read_dv()}} or \code{\link[peranavolley:pv_read]{peranavolley::pv_read()}}}
 
 \item{setter_id}{string: (optional) the player ID of the setter to analyze (or provide \code{setter_name}). If neither \code{setter_id} nor \code{setter_name} are provided, all setters will be analyzed separately, and collated results returned}
 
@@ -34,8 +34,8 @@ Note: analysis is done on the basis of attack actions, and simply assumes that t
 }
 \examples{
 
-x <- plays(ovdata_example("190301_kats_beds", as = "parsed"))
-set_reps <- ov_setter_repetition(x, setter_name = "Lukas Tichacek")
+x <- plays(ovdata_example("NCA-CUB", as = "parsed"))
+set_reps <- ov_setter_repetition(x, setter_name = "LOLETTE RODRIGUEZ")
 
 library(ggplot2)
 ggplot(set_reps, aes(x = player_name, y = `repeat\%`)) + geom_col() +

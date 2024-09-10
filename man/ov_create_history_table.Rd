@@ -34,14 +34,14 @@ Create a prior table from a dvw or a directory of dvw files
 }
 \examples{
 ## use this file to create the priors
-hist_dvw <- ovdata_example("190301_kats_beds")
+hist_dvw <- ovdata_example("NCA-CUB")
 history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "setter call",
                                    setter_position_by = "front_back")
 
 ## use it on another file (here, the same file for demo purposes)
 ## usually the history would be from a reference set of previous matches
 
-dvw <- ovdata_example("190301_kats_beds")
+dvw <- ovdata_example("NCA-CUB")
 setter <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception", n_sim = 100,
                                   attack_by = "setter call", attack_options = "use_history",
                                   setter_position_by = "front_back",

@@ -2,8 +2,32 @@
 % Please edit documentation in R/ovlytics-package.R
 \docType{package}
 \name{ovlytics}
+\alias{ovlytics-package}
 \alias{ovlytics}
 \title{\pkg{ovlytics}}
 \description{
 Analytical functions for volleyball analytics, to be used in conjunction with the datavolley and peranavolley packages.
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://ovlytics.openvolley.org}
+  \item \url{https://github.com/openvolley/ovlytics}
+  \item Report bugs at \url{https://github.com/openvolley/ovlytics/issues}
+}
+
+}
+\author{
+\strong{Maintainer}: Ben Raymond \email{ben@untan.gl}
+
+Authors:
+\itemize{
+  \item Adrien Ickowicz
+}
+
+Other contributors:
+\itemize{
+  \item openvolley.org [originator]
+}
+
 }

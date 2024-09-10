@@ -17,7 +17,7 @@ ov_print_rate_table(ssd, team, setter_id)
 Print the rate table
 }
 \examples{
-dvw <- ovdata_example("190301_kats_beds")
+dvw <- ovdata_example("NCA-CUB")
 system.time({
   ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception",
                                          n_sim = 500, setter_position_by = "front_back")

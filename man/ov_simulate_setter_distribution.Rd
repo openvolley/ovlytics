@@ -21,7 +21,7 @@ ov_simulate_setter_distribution(
 )
 }
 \arguments{
-\item{dvw}{string or datavolley: a datavolley object as returned by \code{\link[datavolley:read_dv]{datavolley::dv_read()}} or a path to datavolley file}
+\item{dvw}{string or datavolley: a datavolley object as returned by \code{\link[datavolley:dv_read]{datavolley::dv_read()}} or a path to datavolley file}
 
 \item{play_phase}{character: one or both of "Reception", "Transition"}
 
@@ -51,7 +51,7 @@ ov_simulate_setter_distribution(
 Simulate a Bayesian Bandit choice for a given set of probabilities and a number of points
 }
 \examples{
-dvw <- ovdata_example("190301_kats_beds")
+dvw <- ovdata_example("NCA-CUB")
 system.time({
   ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception",
                                          n_sim = 100, attack_by = "setter call",
