@@ -20,7 +20,7 @@ Print the rate table
 dvw <- ovdata_example("NCA-CUB")
 system.time({
   ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception",
-                                         n_sim = 500, setter_position_by = "front_back")
+                                         n_sim = 100, setter_position_by = "front_back")
   team <- ssd$raw_data$meta$teams$team[1]
   setter_id <- ssd$raw_data$meta$players_h$player_id[which(ssd$raw_data$meta$players_h$role == "setter")][2]
   ov_print_rate_table(ssd, team, setter_id)

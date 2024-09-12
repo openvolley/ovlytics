@@ -30,7 +30,7 @@ team_name_to_abbrev <- function(x, upper = FALSE) {
 #' system.time({
 #'   ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception",
 #'                                          n_sim = 100, attack_by = "setter call",
-#'                                          setter_position_by = "front_back")
+#'                                          setter_position_by = "front_back", filter_sim = TRUE)
 #' })
 #' @export
 ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Transition"), n_sim = 500, priors = list(name = "beta", par1 = 1, par2 = 1),
@@ -240,13 +240,16 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
     }
 
     sim_filter <- NULL
-
+    
     if (isTRUE(filter_sim)) {
+        
         tbleC <- ungroup(dplyr::summarize(group_by(sim, .data$attack_choice, .data$setter_position, .data$ts_pass_quality, .data$sim_num, .data$team, .data$setter),
                                           KR = mean(.data$reward), n = n()))
-        tbleC <- left_join(tbleC, dplyr::rename(rates, true_KR = "KR", true_n = "n"), by = c("attack_choice" = {{ attack_by_var }},
-                                                                                             "setter_position" = {{ setter_position_by_var }},
-                                                                                             "ts_pass_quality", "team", "setter"))
+        join_vars  = c("team", "setter", "attack_choice" = {{ attack_by_var }})
+        if(setter_position_by_var %in% colnames(rates)) join_vars  = c(join_vars, "setter_position" = {{ setter_position_by_var }})
+        if("ts_pass_quality" %in% colnames(rates)) join_vars  = c(join_vars, "ts_pass_quality")
+        tbleC <- left_join(tbleC, dplyr::rename(rates, true_KR = "KR", true_n = "n"), by = join_vars)
+        
         summaryTC <- mutate(ungroup(tbleC), trueKR_up = .data$true_KR + 1.64*sqrt(.data$true_KR * (1 - .data$true_KR) / .data$true_n),
                             trueKR_down = .data$true_KR - 1.64*sqrt(.data$true_KR * (1 - .data$true_KR) / .data$true_n),
                             keepSim = case_when(.data$KR <= .data$trueKR_up & .data$KR >= .data$trueKR_down ~ TRUE,
