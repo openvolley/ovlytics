@@ -15,6 +15,7 @@ team_name_to_abbrev <- function(x, upper = FALSE) {
 #' @param epsilon numeric: reward size
 #' @param filter_sim logical:
 #' @param attack_options string: either "use_data" or "use_history"
+#' @param killRate_grouping string: Default to NULL, it will use 'attack by' grouping variables. Otherwise a set of additional grouping variables to calculate the kill rate. 
 #' @param setter_position_by string: either "rotation" or "front_back"
 #' @param history_table list: (only if `attack_options` is "use_history") the object returned by [ov_create_history_table()]
 #' @param attack_by string: either "code", "zone", "tempo", "setter call", "attacker_name", "player_role"
@@ -33,7 +34,9 @@ team_name_to_abbrev <- function(x, upper = FALSE) {
 #' })
 #' @export
 ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Transition"), n_sim = 500, priors = list(name = "beta", par1 = 1, par2 = 1),
-                                            epsilon = 1, filter_sim = FALSE, attack_options = "use_data", setter_position_by = "rotation", history_table = NULL,
+                                            epsilon = 1, filter_sim = FALSE, attack_options = "use_data", 
+                                            killRate_grouping = NULL,
+                                            setter_position_by = "rotation", history_table = NULL,
                                             attack_by = "code", exclude_attacks = c("PR"), rotation = "SHM", shiny_progress = NULL) {
     ## TODO check input parms
     attack_by <- match.arg(attack_by, c("zone", "code", "tempo", "setter call", "attacker_name", "player_role"))
@@ -71,7 +74,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
 
     data <- dplyr::filter(dplyr::filter(data, .data$skill == "Attack" & !.data$attack_code %in% exclude_attacks & tolower(.data$phase) %in% tolower(play_phase)), !is.na(.data[[attack_by_var]]))
 
-    sim <- actual <- rates <- NULL
+    sim <- actual <- rates <- rates_beta <- NULL
 
     if ((is.null(history_table$prior_table) || !is.data.frame(history_table$prior_table) || nrow(history_table$prior_table) < 1) && attack_options %eq% "use_history") stop("History table is missing or empty")
 
@@ -92,6 +95,8 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
             tbleChoice <- dplyr::group_by(data_game, dplyr::across({{ setter_position_by_var }}), .data$ts_pass_quality, dplyr::across({{ attack_by_var }}))
             tbleChoice <- dplyr::ungroup(dplyr::summarize(tbleChoice, alpha = sum(.data$evaluation %eq% "Winning attack"), beta = sum(!(.data$evaluation %eq% "Winning attack")), n = dplyr::n()))
         
+            
+            
             if (attack_options == "use_data") {
                 this <- tbleChoice
             } else if (attack_options == "use_history") {
@@ -102,9 +107,22 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                     tbleChoice)
                 this <- ungroup(dplyr::summarize(group_by(this, dplyr::across({{ setter_position_by_var }}), .data$ts_pass_quality, dplyr::across({{ attack_by_var }})), alpha = sum(.data$alpha), beta = sum(.data$beta), n = sum(.data$n)))
             }
+            
             # Define the kill rate
-            this <- dplyr::select(dplyr::mutate(this, KR = .data$alpha / (.data$alpha + .data$beta)), -"alpha", -"beta")
-            probTable <- pivot_wider(dplyr::select(this, -"n"), names_from = {{ attack_by_var }}, values_from = "KR")
+            
+            # We define the grouping for the KR - depending on the grouping chosen as arg into the function
+            
+            if(is.null(killRate_grouping)){
+                killRate_grouping = attack_by_var
+            }
+            this_tmp <- this %>% group_by(dplyr::across({{ killRate_grouping }})) %>% 
+                dplyr::summarise(alpha = sum(alpha), beta = sum(beta), n = sum(n)) %>%
+                ungroup()
+
+            thisKR <- dplyr::select(dplyr::mutate(this_tmp, KR = .data$alpha / (.data$alpha + .data$beta)), -"alpha", -"beta")
+            pT_tmp <- left_join(dplyr::select(dplyr::mutate(this, play = .data$n>0), -"alpha", -"beta", -"n"), thisKR, by =  killRate_grouping )
+            probTable <- pivot_wider(dplyr::select(pT_tmp, -"n", -"play"), names_from = {{ attack_by_var }}, values_from = "KR")
+            
             if (FALSE) {
                 ## use team_id in plot
                 tableBB <- dplyr::mutate(data_game, score = paste(.data$home_team_id, .data$home_team_score, "-", .data$visiting_team_score, .data$visiting_team_id))
@@ -114,8 +132,10 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
                                                                   "-",
                                                                   .data$visiting_team_score, team_name_to_abbrev(.data$visiting_team)))
             }
-            tableBB <- dplyr::left_join(dplyr::select(tableBB, "set_number", "point_id", "score", {{ setter_position_by_var }}, "ts_pass_quality", {{ attack_by_var }}, "evaluation", "video_time"), probTable, by = c(setter_position_by_var, "ts_pass_quality"))
-        
+
+            tableBB <- dplyr::left_join(dplyr::select(tableBB, "set_number", "point_id", "score", {{ setter_position_by_var }}, "ts_pass_quality", {{ attack_by_var }}, "evaluation", "video_time"), 
+                                        probTable, by = c(setter_position_by_var, "ts_pass_quality"))
+
             choice <- matrix(seq_len(ncol(tableBB) - 8), ncol = (ncol(tableBB) - 8), nrow = nrow(tableBB), byrow = TRUE)
             choice[which(is.na(as.matrix(tableBB[, seq(9, ncol(tableBB), by = 1)])))] <- NA
         
@@ -205,10 +225,17 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
             tbleChoice$team <- iTeam
             tbleChoice$setter <- iSetter
         
+            this_tmp$team <- iTeam
+            this_tmp$setter <- iSetter
+            
+            thisKR$team <- iTeam
+            thisKR$setter <- iSetter
+            
             sim <- bind_rows(sim, res)
             actual <- bind_rows(actual, tableBB)
+            rates_beta <- bind_rows(rates_beta, this_tmp)
             tbleChoice <- dplyr::select(mutate(tbleChoice, KR = .data$alpha / (.data$alpha + .data$beta)), -"alpha", -"beta")
-            rates <- bind_rows(rates, tbleChoice)
+            rates <- bind_rows(rates, thisKR)
         }
     }
 
@@ -228,7 +255,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
 
         sim_filter <- dplyr::filter(left_join(sim, summaryTC, by = c("setter", "team", "sim_num")), is.na(.data$keepSim))
     }
-    list(simulations = sim, actual = actual, rates = rates, filtered_simulations = sim_filter, attack_by_var = attack_by_var, setter_position_by_var = setter_position_by_var, raw_data = raw_data, conditional_simulations = cond)
+    list(simulations = sim, actual = actual, rates = rates, rates_beta = rates_beta, filtered_simulations = sim_filter, attack_by_var = attack_by_var, setter_position_by_var = setter_position_by_var, raw_data = raw_data, conditional_simulations = cond)
 }
 
 #' Simulate a Bayesian Bandit choice for a given set of probabilities and a number of points for multiple games
@@ -306,11 +333,17 @@ ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, label_setters_by = "nam
                             dplyr::select(ungroup(temp), "point_id", "home_setter_period_on_court", "visiting_setter_period_on_court"), by = "point_id"),
                   period_on_court = case_when(.data$team %eq% datavolley::home_team(ssd$raw_data) ~ .data$home_setter_period_on_court,
                                               .data$team %eq% datavolley::visiting_team(ssd$raw_data) ~ .data$visiting_setter_period_on_court))
-    g <- ggplot(tbC) +
+    
+    pts_id_score <- tbC %>% ungroup() %>% dplyr::select("point_id", "score") %>% distinct() %>% dplyr::arrange(.data$point_id)
+    label_breaks = round(seq(2, to = nrow(pts_id_score), length.out = max(tbC$set_number)*4))
+    g <- 
+        ggplot(tbC) +
         geom_line(data = bbtrajqi, aes_string(x = "point_id", y = "trajqim", group = "period_on_court"), col = "orange") +
         geom_ribbon(data = bbtrajqi, aes_string(x = "point_id", ymin = "trajqi05", ymax = "trajqi95", group = "period_on_court"), col = "white", fill = "orange", alpha = 0.25) +
         geom_line(aes_string(x = "point_id", y = "pts", linetype = "setter")) + ## previously also group = "period_on_court", but this causes problems with varying linetype and isn't needed anyway?
-        labs(x = "Point ID", y = "Cumulative points scored") + facet_wrap("team", scales = "free")
+        labs(x = "", y = "Cumulative points scored") + facet_wrap("team", scales = "free") + 
+            ggplot2::scale_x_continuous(breaks=pts_id_score$point_id[label_breaks],labels=pts_id_score$score[label_breaks], 
+                                        guide = ggplot2::guide_axis(n.dodge = 2))
 
     if (overlay_set_number) {
         data_label <- dplyr::select(mutate(ssd$raw_data$meta$result, set_number = row_number(),
@@ -672,7 +705,8 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
                                    droplevels() %>%
                                    dplyr::select("time", "least_likely_choice") %>% dplyr::rename(attack_choice = "least_likely_choice") %>% mutate(choice_quality = "least likely") %>% drop_na(.data$attack_choice))
     
-        g1 <- ggplot(data = dplyr::filter(cd_setter, .data$team == xx, .data$setter == yy) %>% droplevels(), aes_string(x = "time", y = "attack_choice")) +
+        g1 <- 
+            ggplot(data = dplyr::filter(cd_setter, .data$team == xx, .data$setter == yy) %>% droplevels(), aes_string(x = "time", y = "attack_choice")) +
             geom_tile(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy) %>% droplevels(), aes_string(x = "time + 0.5", y = "attack_choice_b", fill ="Probability"),
                       alpha = 0.75, show.legend = FALSE) +
             geom_step(group = 1) +
@@ -725,7 +759,7 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
 #' @examples
 #' ## use this file to create the priors
 #' hist_dvw <- ovdata_example("NCA-CUB")
-#' history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "setter call",
+#' history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "attacker_name",
 #'                                    setter_position_by = "front_back")
 #'
 #' ## use it on another file (here, the same file for demo purposes)
@@ -733,7 +767,7 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
 #'
 #' dvw <- ovdata_example("NCA-CUB")
 #' setter <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception", n_sim = 100,
-#'                                   attack_by = "setter call", attack_options = "use_history",
+#'                                   attack_by = "attacker_name", attack_options = "use_history",
 #'                                   setter_position_by = "front_back",
 #'                                   history_table = history_table, filter_sim = TRUE)
 #'
@@ -744,12 +778,15 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
 #' @export
 ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition"), attack_by = "code", setter_position_by = "rotation",
                                     exclude_attacks = c("PR"), normalize_parameters = TRUE) {
-    attack_by <- match.arg(attack_by, c("code", "zone", "tempo", "setter call"))
+    attack_by <- match.arg(attack_by, c("zone", "code", "tempo", "setter call", "attacker_name", "player_role"))
     attack_by_var <- switch(attack_by,
                             "code" = "attack_code",
                             "zone" = "start_zone",
                             "tempo" = "skill_type",
-                            "setter call" = "set_code")
+                            "setter call" = "set_code",
+                            "attacker_name" = "attacker_name",
+                            "player_role" = "player_role")
+    
     setter_position_by <- match.arg(setter_position_by, c("rotation", "front_back"))
     setter_position_by_var <- switch(setter_position_by,
                                      "rotation" = "setter_position",
@@ -783,6 +820,7 @@ ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition
     data_game <- ov_augment_plays(raw_data, to_add = c("touch_summaries", "setters"))
     data_game <- mutate(data_game, setter_position = case_when(.data$team == .data$home_team ~ .data$home_setter_position,
                                                                .data$team == .data$visiting_team ~ .data$visiting_setter_position))
+    data_game <- mutate(data_game, attacker_name = case_when(.data$skill == "Attack" ~ .data$player_name))
 
     if(attack_by == "setter call"){
         data_game <- dplyr::mutate(data_game,
@@ -821,11 +859,10 @@ ov_create_history_table <- function(dvw, play_phase = c("Reception", "Transition
 #'
 #' @examples
 #' hist_dvw <- ovdata_example("NCA-CUB")
-#' history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "tempo",
-#'                                                     setter_position_by = "front_back",
+#' history_table <- ov_create_history_table(dvw = hist_dvw, setter_position_by = "front_back",
 #'                                                     normalize_parameters = FALSE)
 #' team = unique(history_table$prior_table$team)[1]
-#' setter_id = unique(history_table$prior_table$setter_id)[4]
+#' setter_id = unique(history_table$prior_table$setter_id)[1]
 #' ov_plot_history_table(history_table, team, setter_id)
 #' @export
 ov_plot_history_table <- function(history_table, team, setter_id){
@@ -937,9 +974,9 @@ ov_print_history_table <- function(history_table, team, setter_id){
 #' dvw <- ovdata_example("NCA-CUB")
 #' system.time({
 #'   ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception",
-#'                                          n_sim = 500, setter_position_by = "front_back")
+#'                                          n_sim = 100, setter_position_by = "front_back")
 #'   team <- ssd$raw_data$meta$teams$team[1]
-#'   setter_id <- ssd$raw_data$meta$players_h$player_id[which(ssd$raw_data$meta$players_h$role == "setter")][1]
+#'   setter_id <- ssd$raw_data$meta$players_h$player_id[which(ssd$raw_data$meta$players_h$role == "setter")][2]
 #'   ov_print_rate_table(ssd, team, setter_id)
 #' })
 #' @export
@@ -956,6 +993,55 @@ ov_print_rate_table <- function(ssd, team, setter_id){
 }
 
 
+#' Plot the rates
+#'
+#' @param ssd simulated setter distribution output as returned by [ov_simulate_setter_distribution()]
+#' @param team string: team name
+#' @param setter_id string: setter_id
+#' @param range vector of maximum and minimum quantile value description
+#'
+#' @examples
+#' dvw <- ovdata_example("NCA-CUB")
+#' system.time({
+#'   ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = c("Reception", "Transition"),
+#'                                          n_sim = 150, setter_position_by = "front_back", 
+#'                                           attack_by = "zone")
+#'   team <- ssd$raw_data$meta$teams$team[1]
+#'   setter_id <- ssd$raw_data$meta$players_h$player_id[which(ssd$raw_data$meta$players_h$role == "setter")][2]
+#'   ov_plot_rate(ssd, team, setter_id)
+#' })
+#' @export
+ov_plot_rate <- function(ssd, team, setter_id, range = c(0.05, 0.95)){
+    team_name <- team
+    table_df <- dplyr::filter(ssd$rates_beta, .data$team == team_name, .data$setter == setter_id) %>%
+        dplyr::select(-"n", -"team", -"setter") %>% drop_na()  %>% 
+        mutate(qlow = qbeta(range[1], shape1 = .data$alpha, shape2  = .data$beta), 
+               mean = .data$alpha / (.data$alpha + .data$beta), 
+               qup = qbeta(range[2], shape1 = .data$alpha, shape2  = .data$beta))
+    if ("ts_pass_quality" %in% names(table_df)){
+        table_df <- table_df %>% 
+        mutate(ts_pass_quality = factor(.data$ts_pass_quality, c("Perfect", "Good", "OK", "Poor"))) %>% 
+        dplyr::rename("Pass quality" = "ts_pass_quality")
+    g <- ggplot(data = table_df %>% mutate(x_axis = as.factor(!!rlang::sym(ssd$attack_by_var)))) + 
+        ggplot2::geom_pointrange(aes_string(ymin = "qlow", ymax = "qup",y = "mean",
+                                           x = "x_axis", group = "`Pass quality`", col = "`Pass quality`"), 
+                     position = ggplot2::position_dodge(1), linewidth = 1.5, size = 0.75) + 
+        ggplot2::scale_color_brewer(direction = -1)+ scale_y_continuous(labels = scales::percent) +
+        {if(ssd$setter_position_by_var %in% names(table_df)) facet_wrap(dplyr::sym(ssd$setter_position_by_var))}+
+        theme_bw() + xlab(ssd$attack_by_var) + ylab("Attack kill rate range")+ 
+        ggtitle(paste0("Kill rate: ", setter_id,"(",team_name,")"))
+    } else {
+        g <- ggplot(data = table_df %>% mutate(x_axis = as.factor(!!rlang::sym(ssd$attack_by_var)))) + 
+            ggplot2::geom_pointrange(aes_string(ymin = "qlow", ymax = "qup",y = "mean",  x = "x_axis"), 
+                                     position = ggplot2::position_dodge(1), linewidth = 1.5, size = 0.75) + 
+            ggplot2::scale_color_brewer(direction = -1)+ scale_y_continuous(labels = scales::percent) +
+           {if(ssd$setter_position_by_var %in% names(table_df)) facet_wrap(dplyr::sym(ssd$setter_position_by_var))}+
+            theme_bw() + xlab(ssd$attack_by_var) + ylab("Attack kill rate range") + 
+            ggtitle(paste0("Kill rate: ", setter_id," (",team_name,")"))
+    }
+    g
+}
+
 #' Table of a simulated multi-game setter distribution sequence
 #'
 #' @param mssd simulated multi-game setter distribution output as returned by [ov_simulate_multiple_setter_distribution()]
@@ -967,7 +1053,7 @@ ov_print_rate_table <- function(ssd, team, setter_id){
 #' \dontrun{
 #'  list_dv <- list(dv_read(ovdata_example("NCA-CUB"))) # would normally be multiple games
 #'  mssd <- ov_simulate_multiple_setter_distribution(list_dv = list_dv,
-#'              play_phase = c("Reception", "Transition"), attack_by = "player_role",
+#'              play_phase = c("Reception", "Transition"), attack_by = "attacker_name",
 #'              n_sim = 100, setter_position_by = "front_back")
 #'
 #'  res <- ov_table_mssd(mssd, team = "NICARAGUA")
@@ -985,12 +1071,13 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
 
     temppal_cold <- c("#36a1d6", "#76b8de", "#a0bfd9", "#ffffff")
     temppal_hot <- c("#ffffff", "#d88359", "#d65440", "#c62c34")
+    temppal_balanced <- c("#ffffff", "lightgreen", "forestgreen", "darkgreen")
     #temppal_hot_cold <- c("#36a1d6", "#76b8de", "#a0bfd9","#ffffff", "#d88359", "#d65440", "#c62c34")
     temppal_hot_cold <-rev(colorRampPalette(colors = c("#c62c34", "white", "#36a1d6"))(9))
     choices_rating_color <- make_color_pal(temppal_hot_cold, bias = 1)
     exploration_rating_color <- make_color_pal(rev(temppal_cold), bias = 1)
     exploitation_rating_color <- make_color_pal(temppal_hot, bias = 1)
-
+    balanced_rating_color <- make_color_pal(temppal_balanced, bias = 1)
     full_dd <- NULL
     for (dvo in seq_along(mssd)) {
         ssd <- mssd[[dvo]]
@@ -1023,8 +1110,8 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
                                                   .data$team %eq% datavolley::visiting_team(ssd$raw_data) ~ .data$visiting_setter_period_on_court))
         dd <- left_join(tbC, dplyr::select(bbtrajqi, "team", "point_id", "time", "setter", "trajqi05", "trajqi95","trajqim"),
                         by = c("team", "point_id", "time", "setter")) %>% group_by(.data$setter, .data$team) %>%
-            dplyr::summarize(pct_below = mean(.data$pts < .data$trajqi05), pct_above = mean(.data$pts > .data$trajqi95)) %>% ungroup() %>%
-            dplyr::select(team, "setter", "pct_below", "pct_above")
+            dplyr::summarize(pct_below = mean(.data$pts < .data$trajqi05),pct_above = mean(.data$pts > .data$trajqi95), pct_between = 1 - .data$pct_above - .data$pct_below) %>% ungroup() %>%
+            dplyr::select(team, "setter", "pct_below", "pct_between","pct_above")
 
         attack_by_var <- ssd$attack_by_var
         setter_position_by_var <- ssd$setter_position_by_var
@@ -1038,21 +1125,21 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
         attack_zones_actual <- dplyr::rename(attack_zones_actual, attack_choice = {{ attack_by_var }}, setter_position = {{ setter_position_by_var}})
 
         dd_att <- full_join(dplyr::rename(attack_zones_actual, setter_name = "setter"),
-                            dplyr::rename(attack_zones_sim, e_rate = "rate", ns_attacks = "n_attacks", setter_name = "setter")) %>% ## TO CHECK: needs by = c(something)
-            mutate(diff_rate = .data$rate - .data$e_rate) %>% dplyr::select(-"e_rate", -"rate", -"ns_attacks", -"n_attacks") %>%
-            pivot_wider(names_from = "attack_choice", values_from = "diff_rate")
+                            dplyr::rename(attack_zones_sim, exp_rate = "rate", ns_attacks = "n_attacks", setter_name = "setter")) %>% ## TO CHECK: needs by = c(something)
+            mutate(diff_rate = .data$rate - .data$exp_rate) %>% dplyr::select(-"exp_rate",-"rate",-"ns_attacks", -"n_attacks") %>%
+            pivot_wider(names_from = "attack_choice", values_from = c("diff_rate"))
 
         full_dd <- bind_rows(full_dd, mutate(left_join(dplyr::rename(dd, setter_name = "setter"), dd_att), ## TO CHECK: needs by = c(something)
                                              home_team = ssd$raw_data$plays$home_team[1],
                                              away_team = ssd$raw_data$plays$visiting_team[1],
                                              date = ssd$raw_data$meta$match$date))
     }
-
+    
     full_dd_table <- full_dd %>% ungroup() %>%
         mutate(Opponent = case_when(.data$team == .data$away_team ~ paste0("@", .data$home_team),
                                     .data$team == .data$home_team ~ .data$away_team),
                empty_space = "") %>%
-        dplyr::select("date", "Opponent", "setter_position", "pct_below", "setter_position", "pct_above", "empty_space", everything())
+        dplyr::select("date", "Opponent", "setter_position", "pct_below", "setter_position", "pct_between","pct_above", "empty_space", everything())
 
     if (!is.null(team_select)) full_dd_table <- full_dd_table %>% dplyr::filter(.data$team %in% team_select)
 
@@ -1060,18 +1147,19 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
         dplyr::group_map(~{
             df <- .x %>% dplyr::select(-"team", -"setter_name", -"home_team", -"away_team")
             df <- df[, colSums(is.na(df)) < nrow(df)]
-    reactable::reactable(df, theme = reactablefmtr::fivethirtyeight(),
+    reactable::reactable(df, 
+                         groupBy = "date",
+                         theme = reactablefmtr::fivethirtyeight(),
               columnGroups = list(
-                  reactable::colGroup(name = "Overall", columns = c("pct_below", "pct_above"))
+                  reactable::colGroup(name = "Overall", columns = c("pct_below", "pct_between","pct_above"))
               ),
               defaultColDef = rating_column(
                   maxWidth = 90,
                   ##align = "center",
                   aggregate = "mean",
-                  ##style = color_scales(df, colors = temppal_hot_cold),
-                  ##cell = tooltip(number_fmt = scales::percent),
                   cell = function(value) {
                       value_o <- value
+                      #excess <- data$[index]
                       if(!is.numeric(value) || is.na(value)) value <- 0
                       scaled <- round((value + 1) / 2, 3)
                       bgcolor <- choices_rating_color(scaled)
@@ -1094,7 +1182,7 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
                                                             borderLeft = "1px dashed rgba(0, 0, 0, 0.3)")),
                   setter_position = reactable::colDef(name = "Setter", aggregate = "unique", maxWidth = 100),
                   empty_space = reactable::colDef(name = ""),
-                  pct_below = rating_column(name = "Too exploratory",maxWidth = 250,
+                  pct_below = rating_column(name = "More exploratory",maxWidth = 210,
                                             cell = function(value) {
                                                 value_o <- value
                                                 if(!is.numeric(value) || is.na(value)) value <- 0
@@ -1108,7 +1196,21 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
                                                 }
                                                 tags$div(class = "", style = list(background = bgcolor, border = "1px solid grey"), value)
                                             }),
-                  pct_above = reactable::colDef(name = "Too exploitative", maxWidth = 250,
+                  pct_between = rating_column(name = "More balanced",maxWidth = 210,
+                                              cell = function(value) {
+                                                  value_o <- value
+                                                  if(!is.numeric(value) || is.na(value)) value <- 0
+                                                  scaled <- round(value, 3)
+                                                  bgcolor <- balanced_rating_color(scaled)
+                                                  bdcolor <- "grey"
+                                                  value <- scales::label_percent()(value)
+                                                  if(!is.numeric(value_o) || is.na(value_o)) { ## TO CHECK: should be value NOT value_o?
+                                                      value <- if (is.na(value_o)) "" else value_o
+                                                      bdcolor <- "white"
+                                                  }
+                                                  tags$div(class = "", style = list(background = bgcolor, border = "1px solid grey"), value)
+                                              }),
+                  pct_above = reactable::colDef(name = "More exploitative", maxWidth = 210,
                                                 cell = function(value) {
                                                     value_o <- value
                                                     if(!is.numeric(value) || is.na(value)) value <- 0

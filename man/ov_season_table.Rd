@@ -7,13 +7,13 @@
 ov_season_table(xl, target_team, target_team_id, show_by = "match date")
 }
 \arguments{
-\item{xl}{list: list of datavolley objects (each as returned by \code{\link[datavolley:dv_read]{datavolley::dv_read()}}}
+\item{xl}{list: list of datavolley objects (each as returned by \code{\link[datavolley:read_dv]{datavolley::dv_read()}}}
 
 \item{target_team}{string: the name of the target team. Only one of \code{target_team} or \code{target_team_id} is required}
 
 \item{target_team_id}{string: the team ID of the target team. Ignored if \code{target_team} has been provided}
 
-\item{show_by}{string: either "match date" (show each match according to its date) or "filename" (show each match according to its filename. This might be useful if the match dates are being parsed incorrectly by \code{\link[datavolley:dv_read]{datavolley::dv_read()}})}
+\item{show_by}{string: either "match date" (show each match according to its date) or "filename" (show each match according to its filename. This might be useful if the match dates are being parsed incorrectly by \code{\link[datavolley:read_dv]{datavolley::dv_read()}})}
 }
 \value{
 A tibble with columns "Opponent", "Date" (or "File"), "Result", "Set scores", and one column for sets 1 to 5

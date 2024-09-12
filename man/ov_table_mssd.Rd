@@ -22,7 +22,7 @@ Table of a simulated multi-game setter distribution sequence
 \dontrun{
  list_dv <- list(dv_read(ovdata_example("NCA-CUB"))) # would normally be multiple games
  mssd <- ov_simulate_multiple_setter_distribution(list_dv = list_dv,
-             play_phase = c("Reception", "Transition"), attack_by = "player_role",
+             play_phase = c("Reception", "Transition"), attack_by = "attacker_name",
              n_sim = 100, setter_position_by = "front_back")
 
  res <- ov_table_mssd(mssd, team = "NICARAGUA")

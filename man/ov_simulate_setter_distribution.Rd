@@ -12,6 +12,7 @@ ov_simulate_setter_distribution(
   epsilon = 1,
   filter_sim = FALSE,
   attack_options = "use_data",
+  killRate_grouping = NULL,
   setter_position_by = "rotation",
   history_table = NULL,
   attack_by = "code",
@@ -21,7 +22,7 @@ ov_simulate_setter_distribution(
 )
 }
 \arguments{
-\item{dvw}{string or datavolley: a datavolley object as returned by \code{\link[datavolley:dv_read]{datavolley::dv_read()}} or a path to datavolley file}
+\item{dvw}{string or datavolley: a datavolley object as returned by \code{\link[datavolley:read_dv]{datavolley::dv_read()}} or a path to datavolley file}
 
 \item{play_phase}{character: one or both of "Reception", "Transition"}
 
@@ -34,6 +35,8 @@ ov_simulate_setter_distribution(
 \item{filter_sim}{logical:}
 
 \item{attack_options}{string: either "use_data" or "use_history"}
+
+\item{killRate_grouping}{string: Default to NULL, it will use 'attack by' grouping variables. Otherwise a set of additional grouping variables to calculate the kill rate.}
 
 \item{setter_position_by}{string: either "rotation" or "front_back"}
 

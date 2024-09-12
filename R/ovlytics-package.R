@@ -20,7 +20,7 @@
 #' @importFrom purrr map
 #' @importFrom rlang .data
 #' @importFrom scales col_numeric percent
-#' @importFrom stats na.omit quantile rbeta rbinom runif setNames
+#' @importFrom stats na.omit quantile rbeta rbinom runif setNames qbeta
 #' @importFrom tidyr complete drop_na nest pivot_longer pivot_wider unite
 #' @importFrom utils head packageVersion
 "_PACKAGE"

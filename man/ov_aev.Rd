@@ -16,7 +16,7 @@ ov_aev(
 )
 }
 \arguments{
-\item{x}{data.frame: the \code{plays} data.frame as returned by \code{\link[datavolley:dv_read]{datavolley::read_dv()}} or \code{\link[peranavolley:pv_read]{peranavolley::pv_read()}}}
+\item{x}{data.frame: the \code{plays} data.frame as returned by \code{\link[datavolley:read_dv]{datavolley::read_dv()}} or \code{\link[peranavolley:pv_read]{peranavolley::pv_read()}}}
 
 \item{team}{string: the team to calculate attack evenness for. If not provided, it will be calculated separately for all teams in \code{x}}
 

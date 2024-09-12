@@ -35,7 +35,7 @@ Create a prior table from a dvw or a directory of dvw files
 \examples{
 ## use this file to create the priors
 hist_dvw <- ovdata_example("NCA-CUB")
-history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "setter call",
+history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "attacker_name",
                                    setter_position_by = "front_back")
 
 ## use it on another file (here, the same file for demo purposes)
@@ -43,7 +43,7 @@ history_table <- ov_create_history_table(dvw = hist_dvw, attack_by = "setter cal
 
 dvw <- ovdata_example("NCA-CUB")
 setter <- ov_simulate_setter_distribution(dvw = dvw, play_phase = "Reception", n_sim = 100,
-                                  attack_by = "setter call", attack_options = "use_history",
+                                  attack_by = "attacker_name", attack_options = "use_history",
                                   setter_position_by = "front_back",
                                   history_table = history_table, filter_sim = TRUE)
 
