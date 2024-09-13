@@ -270,6 +270,7 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
 #' @param epsilon numeric: reward size
 #' @param filter_sim logical:
 #' @param attack_options string: either "use_data" or "use_history"
+#' @param killRate_grouping string: Default to NULL, it will use 'attack by' grouping variables. Otherwise a set of additional grouping variables to calculate the kill rate. 
 #' @param setter_position_by string: either "rotation" or "front_back"
 #' @param history_table list: (only if `attack_options` is "use_history") the object returned by [ov_create_history_table()]
 #' @param attack_by string: either "code", "zone", "tempo", "setter call", "attacker_name", "player_role"
@@ -280,18 +281,21 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
 #' @seealso [ov_simulate_setter_distribution()]
 #'
 #' @examples
-#' list_dv <- list(dv_read(ovdata_example("NCA-CUB")))
+#' list_dv <- list(dv_read(ovdata_example("NCA-CUB")), dv_read(ovdata_example("NCA-CUB")))
 #' system.time({
 #'   mssd <- ov_simulate_multiple_setter_distribution(list_dv = list_dv, play_phase = "Reception",
 #'                n_sim = 100, setter_position_by = "front_back")
 #' })
 #' @export
 ov_simulate_multiple_setter_distribution <- function(list_dv, play_phase = c("Reception", "Transition"), n_sim = 500, priors = list(name = "beta", par1 = 1, par2 = 1),
-                                                     epsilon = 1, filter_sim = FALSE, attack_options = "use_data", setter_position_by = "rotation", history_table = NULL,
+                                                     epsilon = 1, filter_sim = FALSE, attack_options = "use_data", 
+                                                     killRate_grouping = NULL,
+                                                     setter_position_by = "rotation", history_table = NULL,
                                                      attack_by = "code", exclude_attacks = c("PR"), rotation = "SHM", shiny_progress = NULL) {
-    lapply(list_dv, function(x) ov_simulate_setter_distribution(x, play_phase = play_phase, n_sim = n_sim, priors = priors, epsilon = epsilon, filter_sim = filter_sim,
+    n_dv = length(list_dv)
+    lapply(seq_len(n_dv), function(x) ov_simulate_setter_distribution(list_dv[[x]], play_phase = play_phase, n_sim = n_sim, priors = priors, epsilon = epsilon, filter_sim = filter_sim,
                                                                 attack_options = attack_options, setter_position_by = setter_position_by, history_table = history_table,
-                                                                attack_by = attack_by, exclude_attacks = exclude_attacks, rotation = rotation, shiny_progress = shiny_progress))
+                                                                attack_by = attack_by, exclude_attacks = exclude_attacks, rotation = rotation, shiny_progress = (shiny_progress / n_dv + x/n_dv)))
 }
 
 #' Plot a simulated setter distribution
@@ -1051,6 +1055,7 @@ ov_plot_rate <- function(ssd, team, setter_id, range = c(0.05, 0.95)){
 #' @param label_setters_by string: either "id" or "name"
 #' @param team NULL or string: if non-NULL, show sequence just for this team name
 #' @param nrows integer: number of rows per page in the table
+#' @param groupBy boolean: if TRUE, will group the rows by Opponent
 #'
 #' @examples
 #' \dontrun{
@@ -1062,7 +1067,7 @@ ov_plot_rate <- function(ssd, team, setter_id, range = c(0.05, 0.95)){
 #'  res <- ov_table_mssd(mssd, team = "NICARAGUA")
 #' }
 #' @export
-ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 50) {
+ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 50, groupBy = TRUE) {
     team_select <- team
 
     rating_column <- function(maxWidth = 55, ...) reactable::colDef(maxWidth = maxWidth, align = "center", class = "cell number", ...)
@@ -1138,6 +1143,8 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
                                              date = ssd$raw_data$meta$match$date))
     }
     
+    # Maybe a pb with opponent here
+    
     full_dd_table <- full_dd %>% ungroup() %>%
         mutate(Opponent = case_when(.data$team == .data$away_team ~ paste0("@", .data$home_team),
                                     .data$team == .data$home_team ~ .data$away_team),
@@ -1146,12 +1153,22 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
 
     if (!is.null(team_select)) full_dd_table <- full_dd_table %>% dplyr::filter(.data$team %in% team_select)
 
+    full_dd_table <- full_dd_table %>% mutate(setter_position = as.character(.data$setter_position))
+    
+    bar_chart <- function(label, width = "100%", height = "1rem", fill = "#00bfc4", background = NULL) {
+        bar <- htmltools::div(style = list(background = fill, width = width, height = height))
+        chart <- htmltools::div(style = list(flexGrow = 1, marginLeft = "0.5rem", background = background), bar)
+        htmltools::div(style = list(display = "flex", alignItems = "center"), label, chart)
+    }
+    if(groupBy){
     resT <- full_dd_table %>% group_by(.data$team, .data$setter_name) %>%
         dplyr::group_map(~{
             df <- .x %>% dplyr::select(-"team", -"setter_name", -"home_team", -"away_team")
             df <- df[, colSums(is.na(df)) < nrow(df)]
+            df <- df %>% unite("Opponent", date:Opponent, sep = ": ")
+            
     reactable::reactable(df, 
-                         groupBy = "date",
+                         groupBy = "Opponent",
                          theme = reactablefmtr::fivethirtyeight(),
               columnGroups = list(
                   reactable::colGroup(name = "Overall", columns = c("pct_below", "pct_between","pct_above"))
@@ -1163,7 +1180,7 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
                   cell = function(value) {
                       value_o <- value
                       #excess <- data$[index]
-                      if(!is.numeric(value) || is.na(value)) value <- 0
+                      if(!is.numeric(value) || is.na(value) || is.nan(value)) value <- 0
                       scaled <- round((value + 1) / 2, 3)
                       bgcolor <- choices_rating_color(scaled)
                       bdcolor <- "grey"
@@ -1185,47 +1202,147 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
                                                             borderLeft = "1px dashed rgba(0, 0, 0, 0.3)")),
                   setter_position = reactable::colDef(name = "Setter", aggregate = "unique", maxWidth = 100),
                   empty_space = reactable::colDef(name = ""),
-                  pct_below = rating_column(name = "More exploratory",maxWidth = 210,
-                                            cell = function(value) {
-                                                value_o <- value
-                                                if(!is.numeric(value) || is.na(value)) value <- 0
-                                                scaled <- round(value, 3)
-                                                bgcolor <- exploration_rating_color(scaled)
-                                                bdcolor <- "grey"
-                                                value <- scales::label_percent()(value)
-                                                if(!is.numeric(value_o) || is.na(value_o)) { ## TO CHECK: should be value NOT value_o?
-                                                    value <- if (is.na(value_o)) "" else value_o
-                                                    bdcolor <- "white"
-                                                }
-                                                tags$div(class = "", style = list(background = bgcolor, border = "1px solid grey"), value)
-                                            }),
-                  pct_between = rating_column(name = "More balanced",maxWidth = 210,
-                                              cell = function(value) {
-                                                  value_o <- value
-                                                  if(!is.numeric(value) || is.na(value)) value <- 0
-                                                  scaled <- round(value, 3)
-                                                  bgcolor <- balanced_rating_color(scaled)
-                                                  bdcolor <- "grey"
-                                                  value <- scales::label_percent()(value)
-                                                  if(!is.numeric(value_o) || is.na(value_o)) { ## TO CHECK: should be value NOT value_o?
-                                                      value <- if (is.na(value_o)) "" else value_o
-                                                      bdcolor <- "white"
-                                                  }
-                                                  tags$div(class = "", style = list(background = bgcolor, border = "1px solid grey"), value)
-                                              }),
-                  pct_above = reactable::colDef(name = "More exploitative", maxWidth = 210,
+                  pct_below = reactable::colDef(name = "More explorative", maxWidth = 210,align = "left",
                                                 cell = function(value) {
-                                                    value_o <- value
+                                                    width <- paste0(value*100, "%")
                                                     if(!is.numeric(value) || is.na(value)) value <- 0
                                                     scaled <- round(value, 3)
-                                                    color <- exploitation_rating_color(scaled)
-                                                    value <- scales::label_percent()(value)
-                                                    if (!is.numeric(value_o) || is.na(value_o)) { ## TO CHECK: should be value NOT value_o?
-                                                        value <- if (is.na(value_o)) "" else value_o
-                                                    }
-                                                    tags$div(class = "", style = list(background = color, border = "1px solid grey"), value)
-                                                })
+                                                    bgcolor <- exploration_rating_color(scaled)
+                                                    bar_chart(round(value*100), width = width, fill = bgcolor, background = "#e1e1e1")
+                                                }
+                  ),
+                  pct_between = reactable::colDef(name = "More balanced", maxWidth = 210,align = "left",
+                                                  cell = function(value) {
+                                                      width <- paste0(value*100, "%")
+                                                      if(!is.numeric(value) || is.na(value)) value <- 0
+                                                      scaled <- round(value, 3)
+                                                      bgcolor <- balanced_rating_color(scaled)
+                                                      bar_chart(round(value*100), width = width, fill = bgcolor, background = "#e1e1e1")
+                                                  }
+                  ),
+                  pct_above = reactable::colDef(name = "More exploitative", maxWidth = 210,align = "left",
+                                                cell = function(value) {
+                                                    width <- paste0(value*100, "%")
+                                                    if(!is.numeric(value) || is.na(value)) value <- 0
+                                                    scaled <- round(value, 3)
+                                                    bgcolor <- exploitation_rating_color(scaled)
+                                                    bar_chart(round(value*100), width = width, fill = bgcolor, background = "#e1e1e1")
+                                                }
+                                                )
               ), defaultPageSize = nrows) %>% reactablefmtr::add_title(paste0(.x$setter_name[1], " (", .x$team[1], ")"))
         }, .keep = TRUE)
+    } else {
+        resT <- full_dd_table %>% group_by(.data$team, .data$setter_name) %>%
+            dplyr::group_map(~{
+                df <- .x %>% dplyr::select(-"team", -"setter_name", -"home_team", -"away_team", -"empty_space")
+                df <- df[, colSums(is.na(df)) < nrow(df)]
+                df <- df %>% unite("Opponent", date:Opponent, sep = ": ")
+                df <- df %>% dplyr::select("Opponent", "pct_below", "pct_between", "pct_above", everything())
+                reactable::reactable(df, 
+                                     theme = reactablefmtr::fivethirtyeight(),
+                                     columnGroups = list(
+                                         reactable::colGroup(name = "Overall", columns = c("pct_below", "pct_between","pct_above"))
+                                     ),
+                                     defaultColDef = rating_column(
+                                         maxWidth = 90,
+                                         ##align = "center",
+                                         aggregate = "mean",
+                                         cell = function(value) {
+                                             value_o <- value
+                                             #excess <- data$[index]
+                                             if(!is.numeric(value) || is.na(value) || is.nan(value)) value <- 0
+                                             scaled <- round((value + 1) / 2, 3)
+                                             bgcolor <- choices_rating_color(scaled)
+                                             bdcolor <- "grey"
+                                             ##value <- format(round(value, 2)*100, nsmall = 1)
+                                             value <- scales::label_percent()(value)
+                                             if (!is.numeric(value_o) || is.na(value_o)) { ## TO CHECK: should be value NOT value_o?
+                                                 bdcolor <- "white"
+                                                 value <- if (is.na(value_o)) "" else value_o
+                                             }
+                                             tags$div(class = "", style = list(background=bgcolor, borderStyle = bdcolor), value)
+                                         },
+                                         format = list(aggregated = reactable::colFormat(percent = TRUE, digits = 1))
+                                     ),
+                                     columns = list(
+                                         Opponent = reactable::colDef(
+                                             maxWidth = 180,
+                                             align = "left",
+                                             style = JS("function(rowInfo, column, state) {
+        const firstSorted = state.sorted[0]
+        // Merge cells if unsorted or sorting by school
+        if (!firstSorted || firstSorted.id === 'Opponent') {
+          const prevRow = state.pageRows[rowInfo.viewIndex - 1]
+          if (prevRow && rowInfo.values['Opponent'] === prevRow['Opponent']) {
+            return { visibility: 'hidden' }
+          }
+        }
+      }")
+                                         ),
+                                         setter_position = reactable::colDef(name = "Setter", aggregate = "unique", maxWidth = 100, 
+                                                                             style = list(borderRight = "1px dashed rgba(0, 0, 0, 0.3)",
+                                                                                          borderLeft = "1px dashed rgba(0, 0, 0, 0.3)")),
+                                         empty_space = reactable::colDef(name = ""),
+                                         pct_below = reactable::colDef(name = "More explorative", maxWidth = 210,
+                                                                       align = "left",
+                                                                       cell = function(value) {
+                                                                           width <- paste0(value*100, "%")
+                                                                           if(!is.numeric(value) || is.na(value)) value <- 0
+                                                                           scaled <- round(value, 3)
+                                                                           bgcolor <- exploration_rating_color(scaled)
+                                                                           bar_chart(round(value*100), width = width, fill = bgcolor, background = "#e1e1e1")
+                                                                       },
+                                                                       style = JS("function(rowInfo, column, state) {
+        const firstSorted = state.sorted[0]
+        // Merge cells if unsorted or sorting by school
+        if (!firstSorted || firstSorted.id === 'Opponent') {
+          const prevRow = state.pageRows[rowInfo.viewIndex - 1]
+          if (prevRow && rowInfo.values['Opponent'] === prevRow['Opponent']) {
+            return { visibility: 'hidden' }
+          }
+        }
+      }")
+                                         ),
+                                         pct_between = reactable::colDef(name = "More balanced", maxWidth = 210,align = "center",
+                                                                         cell = function(value) {
+                                                                             width <- paste0(value*100, "%")
+                                                                             if(!is.numeric(value) || is.na(value)) value <- 0
+                                                                             scaled <- round(value, 3)
+                                                                             bgcolor <- balanced_rating_color(scaled)
+                                                                             bar_chart(round(value*100), width = width, fill = bgcolor, background = "#e1e1e1")
+                                                                         },
+                                                                         style = JS("function(rowInfo, column, state) {
+        const firstSorted = state.sorted[0]
+        // Merge cells if unsorted or sorting by school
+        if (!firstSorted || firstSorted.id === 'Opponent') {
+          const prevRow = state.pageRows[rowInfo.viewIndex - 1]
+          if (prevRow && rowInfo.values['Opponent'] === prevRow['Opponent']) {
+            return { visibility: 'hidden' }
+          }
+        }
+      }")
+                                         ),
+                                         pct_above = reactable::colDef(name = "More exploitative", maxWidth = 210,align = "right",
+                                                                       cell = function(value) {
+                                                                           width <- paste0(value*100, "%")
+                                                                           if(!is.numeric(value) || is.na(value)) value <- 0
+                                                                           scaled <- round(value, 3)
+                                                                           bgcolor <- exploitation_rating_color(scaled)
+                                                                           bar_chart(round(value*100), width = width, fill = bgcolor, background = "#e1e1e1")
+                                                                       },
+                                                                       style = JS("function(rowInfo, column, state) {
+        const firstSorted = state.sorted[0]
+        // Merge cells if unsorted or sorting by school
+        if (!firstSorted || firstSorted.id === 'Opponent') {
+          const prevRow = state.pageRows[rowInfo.viewIndex - 1]
+          if (prevRow && rowInfo.values['Opponent'] === prevRow['Opponent']) {
+            return { visibility: 'hidden' }
+          }
+        }
+      }")
+                                         )
+                                     ), defaultPageSize = nrows) %>% reactablefmtr::add_title(paste0(.x$setter_name[1], " (", .x$team[1], ")"))
+            }, .keep = TRUE)
+    }
     resT
 }

@@ -12,6 +12,7 @@ ov_simulate_multiple_setter_distribution(
   epsilon = 1,
   filter_sim = FALSE,
   attack_options = "use_data",
+  killRate_grouping = NULL,
   setter_position_by = "rotation",
   history_table = NULL,
   attack_by = "code",
@@ -35,6 +36,8 @@ ov_simulate_multiple_setter_distribution(
 
 \item{attack_options}{string: either "use_data" or "use_history"}
 
+\item{killRate_grouping}{string: Default to NULL, it will use 'attack by' grouping variables. Otherwise a set of additional grouping variables to calculate the kill rate.}
+
 \item{setter_position_by}{string: either "rotation" or "front_back"}
 
 \item{history_table}{list: (only if \code{attack_options} is "use_history") the object returned by \code{\link[=ov_create_history_table]{ov_create_history_table()}}}
@@ -51,7 +54,7 @@ ov_simulate_multiple_setter_distribution(
 Simulate a Bayesian Bandit choice for a given set of probabilities and a number of points for multiple games
 }
 \examples{
-list_dv <- list(dv_read(ovdata_example("NCA-CUB")))
+list_dv <- list(dv_read(ovdata_example("NCA-CUB")), dv_read(ovdata_example("NCA-CUB")))
 system.time({
   mssd <- ov_simulate_multiple_setter_distribution(list_dv = list_dv, play_phase = "Reception",
                n_sim = 100, setter_position_by = "front_back")
