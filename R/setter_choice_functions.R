@@ -115,8 +115,8 @@ ov_simulate_setter_distribution <- function(dvw, play_phase = c("Reception", "Tr
             if(is.null(killRate_grouping)){
                 killRate_grouping = attack_by_var
             }
-            this_tmp <- this %>% group_by(dplyr::across({{ killRate_grouping }})) %>% 
-                dplyr::summarise(alpha = sum(alpha), beta = sum(beta), n = sum(n)) %>%
+            this_tmp <- this %>% group_by(dplyr::across({{ killRate_grouping }})) %>%
+                dplyr::summarise(alpha = sum(.data$alpha), beta = sum(.data$beta), n = sum(.data$n)) %>%
                 ungroup()
 
             thisKR <- dplyr::select(dplyr::mutate(this_tmp, KR = .data$alpha / (.data$alpha + .data$beta)), -"alpha", -"beta")
