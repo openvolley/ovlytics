@@ -16,7 +16,7 @@ ov_aev(
 )
 }
 \arguments{
-\item{x}{data.frame: the \code{plays} data.frame as returned by \code{\link[datavolley:read_dv]{datavolley::read_dv()}} or \code{\link[peranavolley:pv_read]{peranavolley::pv_read()}}}
+\item{x}{data.frame: the \code{plays} data.frame as returned by \code{\link[datavolley:dv_read]{datavolley::read_dv()}} or \code{\link[peranavolley:pv_read]{peranavolley::pv_read()}}}
 
 \item{team}{string: the team to calculate attack evenness for. If not provided, it will be calculated separately for all teams in \code{x}}
 
@@ -28,7 +28,7 @@ ov_aev(
 \item "none": don't assume player roles, which will mean that under a "perfectly even attack" scenario, each player (excluding the setter) will be expected to make 20\% of attacks. This option is probably of limited use
 }}
 
-\item{reference_props}{data.frame or NULL: if \code{NULL}, the default attack profile will be used (recommended). Otherwise, a data.frame with columns \code{player_role} and \code{p_expected}, where player roles are "middle", "outside", "opposite" and p_expected gives the proportion of attacks that those players are expected to make (when a team is attacking with a perfectly even attack profile)}
+\item{reference_props}{data.frame or NULL: if \code{NULL}, the default attack profile as returned by \code{\link[=ov_aev_reference_props]{ov_aev_reference_props()}} will be used (recommended). Otherwise, provide a data.frame with the same format as that returned by \code{\link[=ov_aev_reference_props]{ov_aev_reference_props()}}}
 
 \item{calculate_by}{character: names variables in \code{x} to group by when doing the calculations. Note that "lineup" is always used as a calculation grouping variable (it is populated inside the function). See Details}
 
@@ -50,7 +50,7 @@ Attack evenness is a measure of how balanced a team's attack is. Teams that rely
 Evenness is calculated for each lineup used by a team and averaged (weighting by the number of attacks that each lineup made) to get an overall evenness value. Liberos are not expected to attack, and setter attacks (dumps) are ignored. Evenness can be calculated on grouped data: by default, it is calculated by match but averaged over matches when reporting the final result.
 }
 \details{
-Note that calculation by group and averaging will not generally give the same results as calculating the average result in one step (e.g. calculating for several matches and averaging those results will probably not give the same answer as calculating for all matches pooled). This is expected: say that my team under-utilizes a particular hitter in one match, and over-utilizes her in another. In both of those matches my team's evenness will be low, and so averaging those results ought to indicate that on average my team was uneven. But if I pool the data from the two matches, the under-utilization in the first match might be balanced by the over-utilization in the second match, giving a higher attack evenness.
+Note that calculation by group and averaging will not generally give the same results as calculating the average result in one step (e.g. calculating for several matches and averaging those results will probably not give the same answer as calculating for all matches pooled). This is expected: say that my team under-utilizes a particular hitter in one match, and over-utilizes her in another. In both of those matches my team's attack was uneven, and so the average of those two results should return a low evenness value indicating that on average my team's attack was uneven. But if the two matches are pooled and the data analyzed all together, the under-utilization in the first match might be balanced by the over-utilization in the second match, giving a higher attack evenness.
 }
 \examples{
 
@@ -65,9 +65,14 @@ ov_aev(px, rotation = "SHM", detail = TRUE)
 ## for a single team, calculated by set number but aggregate results when reporting
 ov_aev(px, team = "GKS Katowice", rotation = "SHM", calculate_by = "set_number")
 
-## for a single team, calculated and reported by set number
-ov_aev(px, team = "GKS Katowice", rotation = "SHM", calculate_by = "set_number",
-       report_by = "set_number")
+## for a single team, calculated and reported by match and set number
+ov_aev(px, team = "GKS Katowice", rotation = "SHM", calculate_by = c("match_id", "set_number"),
+       report_by = c("match_id", "set_number"))
+
+## for a single team, calculated by match and setter position, and reported by setter position
+px <- ov_augment_plays(px, to_add = "setters", use_existing = FALSE)
+ov_aev(px, team = "GKS Katowice", rotation = "SHM",
+       calculate_by = c("match_id", "setter_position"), report_by = "setter_position")
 
 }
 \references{
