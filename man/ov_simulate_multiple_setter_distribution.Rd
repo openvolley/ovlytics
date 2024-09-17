@@ -22,7 +22,7 @@ ov_simulate_multiple_setter_distribution(
 )
 }
 \arguments{
-\item{list_dv}{list: list of datavolley object as returned by \code{\link[datavolley:read_dv]{datavolley::dv_read()}}}
+\item{list_dv}{list: list of datavolley object as returned by \code{\link[datavolley:dv_read]{datavolley::dv_read()}}}
 
 \item{play_phase}{character: one or both of "Reception", "Transition"}
 

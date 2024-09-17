@@ -14,7 +14,7 @@ ov_setter_repetition(
 )
 }
 \arguments{
-\item{x}{data.frame: the \code{plays} data.frame as returned by \code{\link[datavolley:read_dv]{datavolley::read_dv()}} or \code{\link[peranavolley:pv_read]{peranavolley::pv_read()}}}
+\item{x}{data.frame: the \code{plays} data.frame as returned by \code{\link[datavolley:dv_read]{datavolley::read_dv()}} or \code{\link[peranavolley:pv_read]{peranavolley::pv_read()}}}
 
 \item{setter_id}{string: (optional) the player ID of the setter to analyze (or provide \code{setter_name}). If neither \code{setter_id} nor \code{setter_name} are provided, all setters will be analyzed separately, and collated results returned}
 
