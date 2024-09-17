@@ -27,6 +27,7 @@ Imports:
     reactablefmtr,
     rlang,
     scales,
+    stringi,
     stringr,
     tidyr,
     viridisLite
