@@ -211,7 +211,7 @@ aev0_by_rot <- function(x, tm, reference_props = NULL, calculate_by = NULL, deta
         group_by(across(all_of(unique(c("team_id", "lineup", "lineup_order", "front_lineup", "setter_id", "setter_position", calculate_by))))) ## drop setter and re-group
 
     ## now we want to expand by player_id, i.e. fill in players that made no attacks for a given group in that dataframe
-    ## this is horribly slow. but can't see an obvious way to speed it up
+    ## this is slow. but can't see an obvious way to speed it up
     add_missing_players <- function(z, expected_player_ids, setter_id) {
         ## missing_pids <- setdiff(setdiff(expected_player_ids, setter_id), z$player_id)
         missing_pids <- unique(expected_player_ids[!expected_player_ids %in% c(setter_id, z$player_id)]) ## marginally faster?
@@ -226,6 +226,7 @@ aev0_by_rot <- function(x, tm, reference_props = NULL, calculate_by = NULL, deta
     ## fill in their positions front/back
     idx <- which(is.na(this$player_front_back))
     ##this$player_front_back[idx] <- sapply(idx, function(i) { pos <- which(this$lineup_order[[i]] == this$player_id[i]); if (pos %in% 2:4) "front" else "back" }) ## the `else` result will not be correct if the player was not on court, but that should not happen (??)
+    ## this is faster
     this$player_front_back[idx] <- ifelse(stringi::stri_detect_fixed(this$front_lineup[idx], paste0("|", this$player_id[idx], "|")), "front", "back")
     ## fill in roles
     this <- left_join(this, lineup_roles, by = c("lineup", "setter_id", "team_id", "player_id")) %>%
@@ -315,12 +316,12 @@ ov_aev <- function(x, team, rotation, reference_props = NULL, calculate_by = "ma
         if (!"player_role" %in% names(x)) {
             stop("rotation has been specified as 'player_role' but there is no 'player_role' column in x")
         }
-        ## assume that the setter_id is correct if it's present, but add it if not
-        if (!"setter_id" %in% names(x)) x <- ov_augment_plays(x, to_add = "setters", use_existing = FALSE)
+        ## update setter_id column so that we know that it's the ID is the person in home_setter_position or visiting_setter_position
+        x <- ov_augment_plays(x, to_add = "setters", use_existing = FALSE)
     } else {
         x$player_role <- ""
-        ## assume that the setter_id is correct if it's present, but add it if not
-        if (!"setter_id" %in% names(x)) x <- ov_augment_plays(x, to_add = "setters", use_existing = FALSE)
+        ## update setter_id column so that we know that it's the ID is the person in home_setter_position or visiting_setter_position
+        x <- ov_augment_plays(x, to_add = "setters", use_existing = FALSE)
     }
     if (missing(report_by)) report_by <- NULL
     if (length(report_by) > 0) {
