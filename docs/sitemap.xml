@@ -22,6 +22,9 @@
     <loc>/reference/ov_aev.html</loc>
   </url>
   <url>
+    <loc>/reference/ov_aev_reference_props.html</loc>
+  </url>
+  <url>
     <loc>/reference/ov_augment_plays.html</loc>
   </url>
   <url>
@@ -41,6 +44,9 @@
   </url>
   <url>
     <loc>/reference/ov_plot_history_table.html</loc>
+  </url>
+  <url>
+    <loc>/reference/ov_plot_rate.html</loc>
   </url>
   <url>
     <loc>/reference/ov_plot_sequence_distribution.html</loc>

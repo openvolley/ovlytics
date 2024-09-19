@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">ovlytics</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.3</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -56,6 +56,7 @@
 <span>  epsilon <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  filter_sim <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  attack_options <span class="op">=</span> <span class="st">"use_data"</span>,</span>
+<span>  killRate_grouping <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  setter_position_by <span class="op">=</span> <span class="st">"rotation"</span>,</span>
 <span>  history_table <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  attack_by <span class="op">=</span> <span class="st">"code"</span>,</span>
@@ -95,6 +96,10 @@
 <dd><p>string: either "use_data" or "use_history"</p></dd>
 
 
+<dt>killRate_grouping</dt>
+<dd><p>string: Default to NULL, it will use 'attack by' grouping variables. Otherwise a set of additional grouping variables to calculate the kill rate.</p></dd>
+
+
 <dt>setter_position_by</dt>
 <dd><p>string: either "rotation" or "front_back"</p></dd>
 
@@ -130,10 +135,10 @@
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span><span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="va">ssd</span> <span class="op">&lt;-</span> <span class="fu">ov_simulate_setter_distribution</span><span class="op">(</span>dvw <span class="op">=</span> <span class="va">dvw</span>, play_phase <span class="op">=</span> <span class="st">"Reception"</span>,</span></span>
 <span class="r-in"><span>                                         n_sim <span class="op">=</span> <span class="fl">100</span>, attack_by <span class="op">=</span> <span class="st">"setter call"</span>,</span></span>
-<span class="r-in"><span>                                         setter_position_by <span class="op">=</span> <span class="st">"front_back"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>                                         setter_position_by <span class="op">=</span> <span class="st">"front_back"</span>, filter_sim <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    user  system elapsed </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   2.915   0.002   2.917 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   2.919   0.000   2.920 </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>

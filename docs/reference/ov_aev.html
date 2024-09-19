@@ -12,7 +12,7 @@ Evenness is calculated for each lineup used by a team and averaged (weighting by
     
     <a class="navbar-brand me-2" href="../index.html">ovlytics</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.3</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -82,7 +82,7 @@ Evenness is calculated for each lineup used by a team and averaged (weighting by
 
 
 <dt>reference_props</dt>
-<dd><p>data.frame or NULL: if <code>NULL</code>, the default attack profile will be used (recommended). Otherwise, a data.frame with columns <code>player_role</code> and <code>p_expected</code>, where player roles are "middle", "outside", "opposite" and p_expected gives the proportion of attacks that those players are expected to make (when a team is attacking with a perfectly even attack profile)</p></dd>
+<dd><p>data.frame or NULL: if <code>NULL</code>, the default attack profile as returned by <code><a href="ov_aev_reference_props.html">ov_aev_reference_props()</a></code> will be used (recommended). Otherwise, provide a data.frame with the same format as that returned by <code><a href="ov_aev_reference_props.html">ov_aev_reference_props()</a></code></p></dd>
 
 
 <dt>calculate_by</dt>
@@ -111,7 +111,7 @@ Evenness is calculated for each lineup used by a team and averaged (weighting by
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Note that calculation by group and averaging will not generally give the same results as calculating the average result in one step (e.g. calculating for several matches and averaging those results will probably not give the same answer as calculating for all matches pooled). This is expected: say that my team under-utilizes a particular hitter in one match, and over-utilizes her in another. In both of those matches my team's evenness will be low, and so averaging those results ought to indicate that on average my team was uneven. But if I pool the data from the two matches, the under-utilization in the first match might be balanced by the over-utilization in the second match, giving a higher attack evenness.</p>
+    <p>Note that calculation by group and averaging will not generally give the same results as calculating the average result in one step (e.g. calculating for several matches and averaging those results will probably not give the same answer as calculating for all matches pooled). This is expected: say that my team under-utilizes a particular hitter in one match, and over-utilizes her in another. In both of those matches my team's attack was uneven, and so the average of those two results should return a low evenness value indicating that on average my team's attack was uneven. But if the two matches are pooled and the data analyzed all together, the under-utilization in the first match might be balanced by the over-utilization in the second match, giving a higher attack evenness.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -128,34 +128,47 @@ Evenness is calculated for each lineup used by a team and averaged (weighting by
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 1 × 4</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   team         aev_sd   aev N_attacks</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> GKS Katowice 0.045<span style="text-decoration: underline;">4</span> 0.863        99</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> GKS Katowice 0.033<span style="text-decoration: underline;">0</span> 0.861        99</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">## for all teams in px, and with extra detail</span></span></span>
 <span class="r-in"><span><span class="fu">ov_aev</span><span class="op">(</span><span class="va">px</span>, rotation <span class="op">=</span> <span class="st">"SHM"</span>, detail <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 2 × 8</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   team         aev_sd   aev rally_win_rate kill_rate rec_eff N_attacks N_rallies</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> GKS Katowice 0.045<span style="text-decoration: underline;">4</span> 0.863          0.711     0.455   0.338        99        76</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> MKS Będzin   0.024<span style="text-decoration: underline;">1</span> 0.750          0.578     0.4     0.372       125        90</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> GKS Katowice 0.033<span style="text-decoration: underline;">0</span> 0.861          0.711     0.455   0.338        99        76</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> MKS Będzin   0.024<span style="text-decoration: underline;">2</span> 0.75           0.578     0.403   0.372       124        90</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co">## for a single team, calculated by set number but aggregate results when reporting</span></span></span>
 <span class="r-in"><span><span class="fu">ov_aev</span><span class="op">(</span><span class="va">px</span>, team <span class="op">=</span> <span class="st">"GKS Katowice"</span>, rotation <span class="op">=</span> <span class="st">"SHM"</span>, calculate_by <span class="op">=</span> <span class="st">"set_number"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 1 × 4</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   team         aev_sd   aev N_attacks</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> GKS Katowice 0.072<span style="text-decoration: underline;">8</span> 0.810        99</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> GKS Katowice 0.072<span style="text-decoration: underline;">1</span> 0.813        99</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co">## for a single team, calculated and reported by set number</span></span></span>
-<span class="r-in"><span><span class="fu">ov_aev</span><span class="op">(</span><span class="va">px</span>, team <span class="op">=</span> <span class="st">"GKS Katowice"</span>, rotation <span class="op">=</span> <span class="st">"SHM"</span>, calculate_by <span class="op">=</span> <span class="st">"set_number"</span>,</span></span>
-<span class="r-in"><span>       report_by <span class="op">=</span> <span class="st">"set_number"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co">## for a single team, calculated and reported by match and set number</span></span></span>
+<span class="r-in"><span><span class="fu">ov_aev</span><span class="op">(</span><span class="va">px</span>, team <span class="op">=</span> <span class="st">"GKS Katowice"</span>, rotation <span class="op">=</span> <span class="st">"SHM"</span>, calculate_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"match_id"</span>, <span class="st">"set_number"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>       report_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"match_id"</span>, <span class="st">"set_number"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 5 × 6</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   match_id                         set_number team        aev_sd   aev N_attacks</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                                 <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> 9d209c4d499f8eb78e4e9992fc1c00d0          1 GKS Katowi… 0      0.891        23</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> 9d209c4d499f8eb78e4e9992fc1c00d0          2 GKS Katowi… 0      0.8          20</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> 9d209c4d499f8eb78e4e9992fc1c00d0          3 GKS Katowi… 0      0.838        17</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> 9d209c4d499f8eb78e4e9992fc1c00d0          4 GKS Katowi… 0.095<span style="text-decoration: underline;">8</span> 0.74         25</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> 9d209c4d499f8eb78e4e9992fc1c00d0          5 GKS Katowi… 0      0.804        14</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co">## for a single team, calculated by match and setter position, and reported by setter position</span></span></span>
+<span class="r-in"><span><span class="va">px</span> <span class="op">&lt;-</span> <span class="fu"><a href="ov_augment_plays.html">ov_augment_plays</a></span><span class="op">(</span><span class="va">px</span>, to_add <span class="op">=</span> <span class="st">"setters"</span>, use_existing <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">ov_aev</span><span class="op">(</span><span class="va">px</span>, team <span class="op">=</span> <span class="st">"GKS Katowice"</span>, rotation <span class="op">=</span> <span class="st">"SHM"</span>,</span></span>
+<span class="r-in"><span>       calculate_by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"match_id"</span>, <span class="st">"setter_position"</span><span class="op">)</span>, report_by <span class="op">=</span> <span class="st">"setter_position"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 5 × 5</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   set_number team         aev_sd   aev N_attacks</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>          1 GKS Katowice 0      0.891        23</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>          2 GKS Katowice 0      0.8          20</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>          3 GKS Katowice 0      0.831        17</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>          4 GKS Katowice 0.065<span style="text-decoration: underline;">9</span> 0.712        25</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span>          5 GKS Katowice 0      0.839        14</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   setter_position team           aev_sd   aev N_attacks</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>               1 GKS Katowice 0   <span style="color: #949494;"> </span>    0.8          10</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>               3 GKS Katowice 0   <span style="color: #949494;"> </span>    0.667        12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>               4 GKS Katowice 0   <span style="color: #949494;"> </span>    0.8          10</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>               5 GKS Katowice 1.15<span style="color: #949494;">e</span><span style="color: #BB0000;">-16</span> 0.767        15</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span>               6 GKS Katowice 0   <span style="color: #949494;"> </span>    0.7          15</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

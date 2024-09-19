@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">ovlytics</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.3</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -56,6 +56,7 @@
 <span>  epsilon <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  filter_sim <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  attack_options <span class="op">=</span> <span class="st">"use_data"</span>,</span>
+<span>  killRate_grouping <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  setter_position_by <span class="op">=</span> <span class="st">"rotation"</span>,</span>
 <span>  history_table <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  attack_by <span class="op">=</span> <span class="st">"code"</span>,</span>
@@ -95,6 +96,10 @@
 <dd><p>string: either "use_data" or "use_history"</p></dd>
 
 
+<dt>killRate_grouping</dt>
+<dd><p>string: Default to NULL, it will use 'attack by' grouping variables. Otherwise a set of additional grouping variables to calculate the kill rate.</p></dd>
+
+
 <dt>setter_position_by</dt>
 <dd><p>string: either "rotation" or "front_back"</p></dd>
 
@@ -126,13 +131,13 @@
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">list_dv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://datavolley.openvolley.org/reference/dv_read.html" class="external-link">dv_read</a></span><span class="op">(</span><span class="fu"><a href="https://ovdata.openvolley.org/reference/ovdata_example.html" class="external-link">ovdata_example</a></span><span class="op">(</span><span class="st">"NCA-CUB"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">list_dv</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://datavolley.openvolley.org/reference/dv_read.html" class="external-link">dv_read</a></span><span class="op">(</span><span class="fu"><a href="https://ovdata.openvolley.org/reference/ovdata_example.html" class="external-link">ovdata_example</a></span><span class="op">(</span><span class="st">"NCA-CUB"</span><span class="op">)</span><span class="op">)</span>, <span class="fu"><a href="https://datavolley.openvolley.org/reference/dv_read.html" class="external-link">dv_read</a></span><span class="op">(</span><span class="fu"><a href="https://ovdata.openvolley.org/reference/ovdata_example.html" class="external-link">ovdata_example</a></span><span class="op">(</span><span class="st">"NCA-CUB"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/system.time.html" class="external-link">system.time</a></span><span class="op">(</span><span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="va">mssd</span> <span class="op">&lt;-</span> <span class="fu">ov_simulate_multiple_setter_distribution</span><span class="op">(</span>list_dv <span class="op">=</span> <span class="va">list_dv</span>, play_phase <span class="op">=</span> <span class="st">"Reception"</span>,</span></span>
 <span class="r-in"><span>               n_sim <span class="op">=</span> <span class="fl">100</span>, setter_position_by <span class="op">=</span> <span class="st">"front_back"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    user  system elapsed </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   0.523   0.005   0.529 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   1.101   0.000   1.102 </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
