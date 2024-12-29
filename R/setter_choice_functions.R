@@ -1229,7 +1229,7 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
                                                     bar_chart(round(value*100), width = width, fill = bgcolor, background = "#e1e1e1")
                                                 }
                                                 )
-              ), defaultPageSize = nrows) %>% reactablefmtr::add_title(paste0(.x$setter_name[1], " (", .x$team[1], ")"))
+              ), defaultPageSize = nrows) %>% htmlwidgets::prependContent(htmltools::tags$h4(paste0(.x$setter_name[1], " (", .x$team[1], ")"))) ## previously reactablefmtr::add_title but that uses h1 which is too large here
         }, .keep = TRUE)
     } else {
         resT <- full_dd_table %>% group_by(.data$team, .data$setter_name) %>%
@@ -1341,7 +1341,7 @@ ov_table_mssd <- function(mssd, label_setters_by = "name", team = NULL, nrows = 
         }
       }")
                                          )
-                                     ), defaultPageSize = nrows) %>% reactablefmtr::add_title(paste0(.x$setter_name[1], " (", .x$team[1], ")"))
+                                     ), defaultPageSize = nrows) %>% htmlwidgets::prependContent(htmltools::tags$h4(paste0(.x$setter_name[1], " (", .x$team[1], ")"))) ## previously reactablefmtr::add_title but that uses h1 which is too large here
             }, .keep = TRUE)
     }
     resT
