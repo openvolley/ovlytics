@@ -85,7 +85,7 @@ ov_setter_repetition <- function(x, setter_id, setter_name, exclude_attacks = c(
     ## now summarize by player (attacker) and setter
     set_reps <- set_reps %>% group_by(.data$team, .data$setter_name, .data$setter_id, .data$player_name, .data$player_id) %>%
         dplyr::reframe(category = c("Overall", "After kill", "After error", "After blocked"),
-                       ## calculate the number of opportunities for repeating that we had
+                       ## calculate the number of opportunities for repeating that we had (an opportunity is an attack that is followed by another attack, i.e. there was the opportunity for the second one to repeat (or not) the choice made for the first)
                        opportunities = c(sum(.data$not_last_attack), sum(.data$was_kill & .data$not_last_attack), sum(.data$was_error & .data$not_last_attack), sum(.data$was_blocked & .data$not_last_attack)),
                        ## and the number of repeats from those opportunities
                        repeats = c(sum(.data$next_was_repeat, na.rm = TRUE), sum(.data$was_kill & .data$next_was_repeat, na.rm = TRUE), sum(.data$was_error & .data$next_was_repeat, na.rm = TRUE), sum(.data$was_blocked & .data$next_was_repeat, na.rm = TRUE)),
