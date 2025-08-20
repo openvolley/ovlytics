@@ -15,12 +15,12 @@ test_that("augmentation works", {
 
     x <- ov_augment_plays(x, "all")
 
-    expect_equal(x$match_won_by[which(x$match_id == "9d209c4d499f8eb78e4e9992fc1c00d0")][1], "GKS Katowice")
-    expect_equal(x$home_sets_won[which(x$match_id == "9d209c4d499f8eb78e4e9992fc1c00d0")][1], 3)
-    expect_equal(x$visiting_sets_won[which(x$match_id == "9d209c4d499f8eb78e4e9992fc1c00d0")][1], 2)
+    expect_equal(x$match_won_by[which(x$home_team == "GKS Katowice")][1], "GKS Katowice")
+    expect_equal(x$home_sets_won[which(x$home_team == "GKS Katowice")][1], 3)
+    expect_equal(x$visiting_sets_won[which(x$home_team == "GKS Katowice")][1], 2)
 
-    expect_equal(x$home_sets_won[which(x$match_id == "89cf04e6a5037c16fe7ab49094a91b77")][1], 3)
-    expect_equal(x$visiting_sets_won[which(x$match_id == "89cf04e6a5037c16fe7ab49094a91b77")][1], 0)
+    expect_equal(x$home_sets_won[which(x$visiting_team == "Nova KBM Branik")][1], 3)
+    expect_equal(x$visiting_sets_won[which(x$visiting_team == "Nova KBM Branik")][1], 0)
 
     temp <- sort(table(x$player_role[which(x$skill == "Set")]), decreasing = TRUE)
     expect_equal(names(temp)[1], "setter")
