@@ -230,7 +230,7 @@ augment_followed_cols <- function(x) {
             fto[z] <- this_fto
             ftto[z] <- this_ftto
         }
-        if (tempserve[z] || x$end_of_set[z]) {
+        if (isTRUE(tempserve[z] || x$end_of_set[z])) {
             this_fs <- FALSE; this_fto <- FALSE; this_ftto <- FALSE
         }
     }
