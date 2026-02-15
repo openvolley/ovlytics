@@ -1,6 +1,6 @@
 #' Add some extra columns to a plays object
 #'
-#' @param x data.frame: the `plays` data.frame as returned by [datavolley::read_dv()] or [peranavolley::pv_read()]
+#' @param x data.frame: the `plays` data.frame as returned by [datavolley::read_dv()] or [peranavolley::pv_read()]. Can be `plays` from multiple matches combined using `rbind` or `bind_rows`
 #' @param to_add character: columns to add
 #' * "receiving_team" adds the columns "receiving_team" (team name) and "receiving_team_id"
 #' * "winners" adds the columns "set_won_by", "set_won_by_id" (the name and ID of the team that won the current set), "match_won_by", "match_won_by_id" (the name and ID of the team that won the current match), "team_won_set" and "team_won_match" (did the team making the action in the current row win the set/match), and "home_sets_won" and "visiting_sets_won" (the number of sets won by the home and visiting teams)
