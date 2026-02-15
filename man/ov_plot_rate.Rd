@@ -22,7 +22,7 @@ Plot the rates
 dvw <- ovdata_example("NCA-CUB")
 system.time({
   ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = c("Reception", "Transition"),
-                                         n_sim = 150, setter_position_by = "front_back", 
+                                         n_sim = 150, setter_position_by = "front_back",
                                           attack_by = "zone")
   team <- ssd$raw_data$meta$teams$team[1]
   setter_id <- ssd$raw_data$meta$players_h$player_id[which(ssd$raw_data$meta$players_h$role == "setter")][2]

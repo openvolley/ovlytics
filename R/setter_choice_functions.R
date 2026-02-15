@@ -343,11 +343,11 @@ ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, label_setters_by = "nam
     
     pts_id_score <- tbC %>% ungroup() %>% dplyr::select("point_id", "score") %>% distinct() %>% dplyr::arrange(.data$point_id)
     label_breaks = round(seq(2, to = nrow(pts_id_score), length.out = max(tbC$set_number)*4))
-    g <- 
+    g <-
         ggplot(tbC) +
-        geom_line(data = bbtrajqi, aes_string(x = "point_id", y = "trajqim", group = "period_on_court"), col = "orange") +
-        geom_ribbon(data = bbtrajqi, aes_string(x = "point_id", ymin = "trajqi05", ymax = "trajqi95", group = "period_on_court"), col = "white", fill = "orange", alpha = 0.25) +
-        geom_line(aes_string(x = "point_id", y = "pts", linetype = "setter")) + ## previously also group = "period_on_court", but this causes problems with varying linetype and isn't needed anyway?
+        geom_line(data = bbtrajqi, aes(x = .data$point_id, y = .data$trajqim, group = .data$period_on_court), col = "orange") +
+        geom_ribbon(data = bbtrajqi, aes(x = .data$point_id, ymin = .data$trajqi05, ymax = .data$trajqi95, group = .data$period_on_court), col = "white", fill = "orange", alpha = 0.25) +
+        geom_line(aes(x = .data$point_id, y = .data$pts, linetype = .data$setter)) + ## previously also group = .data$period_on_court, but this causes problems with varying linetype and isn't needed anyway?
         labs(x = "", y = "Cumulative points scored") + facet_wrap("team", scales = "free") + 
             ggplot2::scale_x_continuous(breaks=pts_id_score$point_id[label_breaks],labels=pts_id_score$score[label_breaks], 
                                         guide = ggplot2::guide_axis(n.dodge = 2))
@@ -361,13 +361,13 @@ ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, label_setters_by = "nam
         data_label <- left_join(data_label, group_by(ssd$actual, .data$team, .data$set_number) %>%
                                     dplyr::summarize(x_label = max(.data$point_id)/2 + min(.data$point_id)/2) %>% ungroup(),
                                 by = "set_number") %>%
-            left_join(ungroup(group_by(tbC, .data$team) %>% dplyr::summarize(maxPts = max(.data$pts))), by = c("team")) %>%
-            left_join(ungroup(group_by(bbtrajqi, .data$team) %>% dplyr::summarize(maxPts_sim = max(.data$trajqi95))), by = c("team"))
+            left_join(group_by(tbC, .data$team) %>% dplyr::summarize(maxPts = max(.data$pts)) %>% ungroup, by = c("team")) %>%
+            left_join(group_by(bbtrajqi, .data$team) %>% dplyr::summarize(maxPts_sim = max(.data$trajqi95)) %>% ungroup, by = c("team"))
 
-        data_sets <- group_by(ssd$actual, .data$team, .data$set_number) %>% dplyr::summarize(x_line = max(.data$point_id))
+        data_sets <- group_by(ssd$actual, .data$team, .data$set_number) %>% dplyr::summarize(x_line = max(.data$point_id)) %>% ungroup
 
-        g <- g + geom_vline(data = data_sets, aes_string(xintercept = "x_line"), col = "grey") +
-            geom_label(data = data_label, aes_string(x = "x_label", y = "max(maxPts, maxPts_sim)+2", label = "score"), size = font_size/11*9*0.35278)
+        g <- g + geom_vline(data = data_sets, aes(xintercept = .data$x_line), col = "grey") +
+            geom_label(data = data_label, aes(x = .data$x_label, y = max(.data$maxPts, .data$maxPts_sim) + 2, label = .data$score), size = font_size/11*9*0.35278)
     }
 
     if (!is.null(ssd$filtered_simulations)) {
@@ -376,8 +376,8 @@ ov_plot_ssd <- function(ssd, overlay_set_number = FALSE, label_setters_by = "nam
         bbtrajqi_f <- ungroup(dplyr::summarize(group_by(bbtrajqi_f, .data$time, .data$team, .data$setter),
                                                trajqi05 = quantile(.data$traj, 0.05), trajqi95 = quantile(.data$traj, 0.95),
                                                trajqim = mean(.data$traj)))
-        g <- g + geom_line(data = bbtrajqi_f, aes_string(x = "time", y = "trajqim", group = "setter"), col = "red") +
-            geom_ribbon(data = bbtrajqi_f, aes_string(x = "time", ymin = "trajqi05", ymax = "trajqi95", group = "setter"), col = "white", fill = "red", alpha = 0.25)
+        g <- g + geom_line(data = bbtrajqi_f, aes(x = .data$time, y = .data$trajqim, group = .data$setter), col = "red") +
+            geom_ribbon(data = bbtrajqi_f, aes(x = .data$time, ymin = .data$trajqi05, ymax = .data$trajqi95, group = .data$setter), col = "white", fill = "red", alpha = 0.25)
     }
     g + theme_bw(base_size = font_size) + theme(legend.position = "bottom")
 }
@@ -447,9 +447,9 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
                                    rotation = forcats::fct_relevel(as.factor(as.character(.data$setter_position)), setter_rotation_levels))
     
         gActual <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
-            ggplot(dplyr::filter(attack_zones_actual, .data$team == xx & .data$setter == yy), aes_string(x = "x", y = "y - 0.5")) +
-                geom_segment(aes_string(xend = "x", yend = "y - 0.1", size = "rate", col = "type"), arrow = arrow(length = unit(0.03, "npc"))) +
-                geom_text(aes_string(y = "y - 0.6", label = "attack_code", col = "type"), show.legend = FALSE) +
+            ggplot(dplyr::filter(attack_zones_actual, .data$team == xx & .data$setter == yy), aes(x = .data$x, y = .data$y - 0.5)) +
+                geom_segment(aes(xend = .data$x, yend = .data$y - 0.1, size = .data$rate, col = .data$type), arrow = arrow(length = unit(0.03, "npc"))) +
+                geom_text(aes(y = .data$y - 0.6, label = .data$attack_code, col = .data$type), show.legend = FALSE) +
                 ggcourt(court = "lower", labels = "") +
                 facet_wrap(~rotation) +
                 scale_size(guide = "none") +
@@ -457,9 +457,9 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
         })
     
         gSim <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
-            ggplot(dplyr::filter(attack_zones_sim, .data$team == xx & .data$setter == yy), aes_string(x = "x", y = "y - 0.5")) +
-                geom_segment(aes_string(xend = "x", yend = "y - 0.1",  size = "rate", col = "type"), arrow = arrow(length = unit(0.03, "npc"))) +
-                geom_text(aes_string(y = "y - 0.6", label = "attack_choice", col = "type"), show.legend = FALSE) +
+            ggplot(dplyr::filter(attack_zones_sim, .data$team == xx & .data$setter == yy), aes(x = .data$x, y = .data$y - 0.5)) +
+                geom_segment(aes(xend = .data$x, yend = .data$y - 0.1,  size = .data$rate, col = .data$type), arrow = arrow(length = unit(0.03, "npc"))) +
+                geom_text(aes(y = .data$y - 0.6, label = .data$attack_choice, col = .data$type), show.legend = FALSE) +
                 ggcourt(court = "lower", labels = "") + scale_size(guide = "none") +
                 scale_fill_gradient2(name = "Attack rate") + facet_wrap(~rotation) +
                 ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")")))
@@ -474,17 +474,17 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
         gActual <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_actual, .data$team == xx & .data$setter == yy),
                           lab = paste0(round(.data$rate, 2) * 100, "%")),
-                   aes_string(x = "x", y = "y", fill = "rate")) + geom_tile() + ggcourt(court = "lower", labels = "", base_size = font_size) +
+                   aes(x = .data$x, y = .data$y, fill = .data$rate)) + geom_tile() + ggcourt(court = "lower", labels = "", base_size = font_size) +
                 scale_fill_gradient2(name = "Attack rate") + facet_wrap(~rotation) + theme(legend.position = "none") +
-                geom_text(aes_string(x = "x", y ="y", label = "lab"), size = font_size/11*9.5*0.35278) + ggtitle(twrapf(paste0("Actual distribution - ", yy, " (", xx, ")")))
+                geom_text(aes(x = .data$x, y = .data$y, label = .data$lab), size = font_size/11*9.5*0.35278) + ggtitle(twrapf(paste0("Actual distribution - ", yy, " (", xx, ")")))
         })
     
         gSim <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_sim, .data$team == xx & .data$setter == yy),
                           lab = paste0(round(.data$rate, 2) * 100, "%")),
-                   aes_string(x = "x", y = "y", fill = "rate")) + geom_tile() + ggcourt(court = "lower", labels = "", base_size = font_size) +
+                   aes(x = .data$x, y = .data$y, fill = .data$rate)) + geom_tile() + ggcourt(court = "lower", labels = "", base_size = font_size) +
                 scale_fill_gradient2(name = "Attack rate") + facet_wrap(~rotation) +
-                geom_text(aes_string(x = "x", y = "y", label = "lab"), size = font_size/11*9.5*0.35278) +
+                geom_text(aes(x = .data$x, y = .data$y, label = .data$lab), size = font_size/11*9.5*0.35278) +
                 theme(legend.position = "none") + ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")")))
         })
     }
@@ -499,8 +499,8 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
 
         gActual <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_actual, .data$team == xx & .data$setter == yy),
-                          lab = paste0(round(.data$rate, 2) * 100, "%")), aes_string(x = "skill_type"))  +
-                geom_col(aes_string(y= "rate")) + facet_wrap(~rotation) +
+                          lab = paste0(round(.data$rate, 2) * 100, "%")), aes(x = .data$skill_type))  +
+                geom_col(aes(y = .data$rate)) + facet_wrap(~rotation) +
                 scale_y_continuous(labels=scales::percent) + theme_bw()+
                 theme(axis.text.x = element_text(size = 9.5*0.75278, angle = 30, hjust = 1)) +
                 ylab("Percent")+ xlab("")+
@@ -508,8 +508,8 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
         })
         gSim <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_sim, .data$team == xx & .data$setter == yy),
-                          lab = paste0(round(.data$rate, 2) * 100, "%")), aes_string(x = "attack_choice"))  +
-                geom_col(aes_string(y= "rate")) + facet_wrap(~rotation) +
+                          lab = paste0(round(.data$rate, 2) * 100, "%")), aes(x = .data$attack_choice))  +
+                geom_col(aes(y = .data$rate)) + facet_wrap(~rotation) +
                 scale_y_continuous(labels=scales::percent) + theme_bw()+
                 theme(axis.text.x = element_text(size = 9.5*0.75278, angle = 30, hjust = 1)) +
                 ylab("Percent")+ xlab("")+
@@ -576,11 +576,11 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
         gActual <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_actual, .data$team == xx & .data$setter == yy),
                           lab = paste0(round(.data$rate, 2) * 100, "%")),
-                   aes_string(x = "x", y = "y")) + geom_tile(aes_string(fill = "rate")) + ggcourt(court = "lower", labels = "", base_size = font_size) +
+                   aes(x = .data$x, y = .data$y)) + geom_tile(aes(fill = .data$rate)) + ggcourt(court = "lower", labels = "", base_size = font_size) +
                 scale_fill_gradient2(name = "Attack rate") + facet_grid(rotation~setter_call) + theme(legend.position = "none") +
-                geom_text(aes_string(x = "x", y ="y", label = "lab"), size = font_size/11*9.5*0.35278) +
-                geom_segment(data=calls_arrows_f, aes_string(x = "mid_x", y = "mid_y", xend = "mid_x", yend = "mid_y"))+
-                geom_segment(data=calls_arrows_f, aes_string(x = "mid_x", y = "mid_y", xend = "end_x", yend = "end_y"),
+                geom_text(aes(x = .data$x, y = .data$y, label = .data$lab), size = font_size/11*9.5*0.35278) +
+                geom_segment(data = calls_arrows_f, aes(x = .data$start_x, y = .data$start_y, xend = .data$mid_x, yend = .data$mid_y)) +
+                geom_segment(data = calls_arrows_f, aes(x = .data$mid_x, y = .data$mid_y, xend = .data$end_x, yend = .data$end_y),
                              arrow = arrow(length = unit(0.03, "npc"))) +
                 ggtitle(twrapf(paste0("Actual distribution - ", yy, " (", xx, ")")))
         })
@@ -588,27 +588,26 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
         gSim <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_sim, .data$team == xx & .data$setter == yy),
                           lab = paste0(round(.data$rate, 2) * 100, "%")),
-                   aes_string(x = "x", y = "y")) + geom_tile(aes_string(fill = "rate")) + ggcourt(court = "lower", labels = "", base_size = font_size) +
+                   aes(x = .data$x, y = .data$y)) + geom_tile(aes(fill = .data$rate)) + ggcourt(court = "lower", labels = "", base_size = font_size) +
                 scale_fill_gradient2(name = "Attack rate") + facet_grid(rotation~setter_call) +
-                geom_text(aes_string(x = "x", y = "y", label = "lab"), size = font_size/11*9.5*0.35278) +
-                geom_segment(data=calls_arrows_f, aes_string(x = "mid_x", y = "mid_y", xend = "mid_x", yend = "mid_y"))+
-                geom_segment(data=calls_arrows_f, aes_string(x = "mid_x", y = "mid_y", xend = "end_x", yend = "end_y"),
+                geom_text(aes(x = .data$x, y = .data$y, label = .data$lab), size = font_size/11*9.5*0.35278) +
+                geom_segment(data = calls_arrows_f, aes(x = .data$start_x, y = .data$start_y, xend = .data$mid_x, yend = .data$mid_y)) +
+                geom_segment(data = calls_arrows_f, aes(x = .data$mid_x, y = .data$mid_y, xend = .data$end_x, yend = .data$end_y),
                              arrow = arrow(length = unit(0.03, "npc"))) +
                 theme(legend.position = "none") + ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")")))
         })
 
     }
     if (attack_by_var == "player_role") {
-        
         attack_zones_sim <- mutate(attack_zones_sim,
                                    rotation = forcats::fct_relevel(as.factor(as.character(.data$setter_position)), setter_rotation_levels))
         attack_zones_actual <- mutate(attack_zones_actual)
         attack_zones_actual$rotation <- forcats::fct_relevel(as.factor(as.character(unlist(attack_zones_actual[,setter_position_by_var]))), setter_rotation_levels)
-        
+
         gActual <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_actual, .data$team == xx & .data$setter == yy),
-                          lab = paste0(round(.data$rate, 2) * 100, "%")), aes_string(x = "player_role"))  +
-                geom_col(aes_string(y= "rate")) + facet_wrap(~rotation) +
+                          lab = paste0(round(.data$rate, 2) * 100, "%")), aes(x = .data$player_role))  +
+                geom_col(aes(y = .data$rate)) + facet_wrap(~rotation) +
                 scale_y_continuous(labels=scales::percent) + theme_bw()+
                 theme(axis.text.x = element_text(size = 9.5*0.75278, angle = 30, hjust = 1)) +
                 ylab("Percent")+ xlab("")+
@@ -616,8 +615,8 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
         })
         gSim <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_sim, .data$team == xx & .data$setter == yy),
-                          lab = paste0(round(.data$rate, 2) * 100, "%")), aes_string(x = "attack_choice"))  +
-                geom_col(aes_string(y= "rate")) + facet_wrap(~rotation) +
+                          lab = paste0(round(.data$rate, 2) * 100, "%")), aes(x = .data$attack_choice))  +
+                geom_col(aes(y = .data$rate)) + facet_wrap(~rotation) +
                 scale_y_continuous(labels=scales::percent) + theme_bw()+
                 theme(axis.text.x = element_text(size = 9.5*0.75278, angle = 30, hjust = 1)) +
                 ylab("Percent")+ xlab("")+
@@ -633,8 +632,8 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
         
         gActual <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_actual, .data$team == xx & .data$setter == yy),
-                          lab = paste0(round(.data$rate, 2) * 100, "%")), aes_string(x = "attacker_name"))  +
-                geom_col(aes_string(y= "rate")) + facet_wrap(~rotation) +
+                          lab = paste0(round(.data$rate, 2) * 100, "%")), aes(x = .data$attacker_name))  +
+                geom_col(aes(y = .data$rate)) + facet_wrap(~rotation) +
                 scale_y_continuous(labels=scales::percent) + theme_bw()+
                 theme(axis.text.x = element_text(size = 9.5*0.75278, angle = 30, hjust = 1)) +
                 ylab("Percent")+ xlab("")+
@@ -642,8 +641,8 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
         })
         gSim <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(mutate(dplyr::filter(attack_zones_sim, .data$team == xx & .data$setter == yy),
-                          lab = paste0(round(.data$rate, 2) * 100, "%")), aes_string(x = "attack_choice"))  +
-                geom_col(aes_string(y= "rate")) + facet_wrap(~rotation) +
+                          lab = paste0(round(.data$rate, 2) * 100, "%")), aes(x = .data$attack_choice))  +
+                geom_col(aes(y = .data$rate)) + facet_wrap(~rotation) +
                 scale_y_continuous(labels=scales::percent) + theme_bw()+
                 theme(axis.text.x = element_text(size = 9.5*0.75278, angle = 30, hjust = 1)) +
                 ylab("Percent")+ xlab("")+
@@ -713,12 +712,12 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
                                    dplyr::select("time", "least_likely_choice") %>% dplyr::rename(attack_choice = "least_likely_choice") %>% mutate(choice_quality = "least likely") %>% drop_na(.data$attack_choice))
     
         g1 <- 
-            ggplot(data = dplyr::filter(cd_setter, .data$team == xx, .data$setter == yy) %>% droplevels(), aes_string(x = "time", y = "attack_choice")) +
-            geom_tile(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy) %>% droplevels(), aes_string(x = "time + 0.5", y = "attack_choice_b", fill ="Probability"),
+            ggplot(data = dplyr::filter(cd_setter, .data$team == xx, .data$setter == yy) %>% droplevels(), aes(x = .data$time, y = .data$attack_choice)) +
+            geom_tile(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy) %>% droplevels(), aes(x = .data$time + 0.5, y = .data$attack_choice_b, fill = .data$Probability),
                       alpha = 0.75, show.legend = FALSE) +
             geom_step(group = 1) +
-            geom_point(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy) %>% droplevels(), aes_string(x = "time + 0.5", y = "choice_bandit"), col = "white", size = 1) +
-            geom_point(data = cd_quality, aes_string(x = "time + 0.5", y = "attack_choice", col = "choice_quality"), size = 1) +
+            geom_point(data = dplyr::filter(cd_bandit, .data$team == xx & .data$setter == yy) %>% droplevels(), aes(x = .data$time + 0.5, y = .data$choice_bandit), col = "white", size = 1) +
+            geom_point(data = cd_quality, aes(x = .data$time + 0.5, y = .data$attack_choice, col = .data$choice_quality), size = 1) +
             theme_bw(base_size = font_size) +
             #scale_fill_continuous(na.value = NA, limits = c(0, 1)) +
             theme(legend.position = "bottom") + labs(x = "Game history", y = "Attack choice") +
@@ -726,9 +725,9 @@ ov_plot_sequence_distribution <- function(ssd, label_setters_by = "id", font_siz
             ggtitle(twrapf(paste0("Bandit distribution - ", yy, " (", xx, ")")))
     
         cd_setter[[setter_position_by_var]] <- stringr::str_trunc(cd_setter[[setter_position_by_var]],1 ,side = "right", ellipsis = "")
-        g2 <- ggplot(data = dplyr::filter(cd_setter, .data$team == xx, .data$setter == yy)%>% droplevels(), aes_string(x = "time")) +
-            geom_tile(aes_string(fill = "ts_pass_quality", y ="1")) +
-            geom_text(aes_string(y="1", label = setter_position_by_var), size = 2)+
+        g2 <- ggplot(data = dplyr::filter(cd_setter, .data$team == xx, .data$setter == yy)%>% droplevels(), aes(x = .data$time)) +
+            geom_tile(aes(fill = .data$ts_pass_quality, y = 1)) +
+            geom_text(aes(y = 1, label = .data[[setter_position_by_var]]), size = 2)+
             scale_fill_brewer()+
             theme_void() + theme(legend.position = "none")
 
@@ -898,7 +897,7 @@ ov_plot_history_table <- function(history_table, team, setter_id){
     ht <-  mutate(nest(dplyr::group_by(dplyr::filter(ht_tmp, .data$team %eq% team_select, .data$setter_id %eq% setter_select),
                                               dplyr::across({{ setter_position_by_var }}), dplyr::across({{ attack_by_var }}))),
                   plot = purrr::map(.data$data, ~
-                                                    ggplot(df, aes_string(x = "thetaBounds")) + xlab("") + ylab("") + ylim(c(0, 6)) +
+                                                    ggplot(df, aes(x = .data$thetaBounds)) + xlab("") + ylab("") + ylim(c(0, 6)) +
                                                     apply(.x, 1, function(y) geom_area(aes(fill = y["ts_pass_quality"], col = y["ts_pass_quality"]), stat = "function", fun = dbeta, alpha = 0.5,
                                                                                        args = list(shape1 = as.numeric(y["alpha"]), shape2 = as.numeric(y["beta"])))) + theme_bw(base_size = 11) +
                                                     theme(legend.position = "none", plot.margin = unit(c(1, 0, 0, 0.1), "pt"))))
@@ -990,7 +989,7 @@ ov_print_history_table <- function(history_table, team, setter_id){
 ov_print_rate_table <- function(ssd, team, setter_id){
     team_name <- team
     table_df <- dplyr::filter(ssd$rates, .data$team == team_name, .data$setter == setter_id) %>%
-        dplyr::select(-"n", -"team", -"setter") %>% drop_na()  %>%
+        dplyr::select(-"n", -"team", -"setter") %>% drop_na() %>%
         pivot_wider(names_from = ssd$attack_by_var, values_from = "KR")
     if ("ts_pass_quality" %in% names(table_df)) table_df <- table_df %>% dplyr::rename("Pass quality" = "ts_pass_quality")
     if ("setter_front_back" %in% names(table_df)) table_df <- table_df %>% dplyr::rename("Front/Back" = "setter_front_back")
@@ -1011,7 +1010,7 @@ ov_print_rate_table <- function(ssd, team, setter_id){
 #' dvw <- ovdata_example("NCA-CUB")
 #' system.time({
 #'   ssd <- ov_simulate_setter_distribution(dvw = dvw, play_phase = c("Reception", "Transition"),
-#'                                          n_sim = 150, setter_position_by = "front_back", 
+#'                                          n_sim = 150, setter_position_by = "front_back",
 #'                                           attack_by = "zone")
 #'   team <- ssd$raw_data$meta$teams$team[1]
 #'   setter_id <- ssd$raw_data$meta$players_h$player_id[which(ssd$raw_data$meta$players_h$role == "setter")][2]
@@ -1021,30 +1020,30 @@ ov_print_rate_table <- function(ssd, team, setter_id){
 ov_plot_rate <- function(ssd, team, setter_id, range = c(0.05, 0.95)){
     team_name <- team
     table_df <- dplyr::filter(ssd$rates_beta, .data$team == team_name, .data$setter == setter_id) %>%
-        dplyr::select(-"n", -"team", -"setter") %>% drop_na()  %>% 
-        mutate(qlow = qbeta(range[1], shape1 = .data$alpha, shape2  = .data$beta), 
-               mean = .data$alpha / (.data$alpha + .data$beta), 
+        dplyr::select(-"n", -"team", -"setter") %>% drop_na() %>%
+        mutate(qlow = qbeta(range[1], shape1 = .data$alpha, shape2  = .data$beta),
+               mean = .data$alpha / (.data$alpha + .data$beta),
                qup = qbeta(range[2], shape1 = .data$alpha, shape2  = .data$beta))
     if ("ts_pass_quality" %in% names(table_df)){
-        table_df <- table_df %>% 
-        mutate(ts_pass_quality = factor(.data$ts_pass_quality, c("Perfect", "Good", "OK", "Poor"))) %>% 
+        table_df <- table_df %>%
+        mutate(ts_pass_quality = factor(.data$ts_pass_quality, c("Perfect", "Good", "OK", "Poor"))) %>%
         dplyr::rename("Pass quality" = "ts_pass_quality")
-    g <- ggplot(data = table_df %>% mutate(x_axis = as.factor(!!rlang::sym(ssd$attack_by_var)))) + 
-        ggplot2::geom_pointrange(aes_string(ymin = "qlow", ymax = "qup",y = "mean",
-                                           x = "x_axis", group = "`Pass quality`", col = "`Pass quality`"), 
-                     position = ggplot2::position_dodge(1), linewidth = 1.5, size = 0.75) + 
+    g <- ggplot(data = table_df %>% mutate(x_axis = as.factor(!!rlang::sym(ssd$attack_by_var)))) +
+        ggplot2::geom_pointrange(aes(ymin = .data$qlow, ymax = .data$qup, y = .data$mean,
+                                     x = .data$x_axis, group = .data$`Pass quality`, col = .data$`Pass quality`),
+                     position = ggplot2::position_dodge(1), linewidth = 1.5, size = 0.75) +
         ggplot2::scale_color_brewer(direction = -1)+ scale_y_continuous(labels = scales::percent) +
         {if(ssd$setter_position_by_var %in% names(table_df)) facet_wrap(dplyr::sym(ssd$setter_position_by_var))}+
-        theme_bw() + xlab(ssd$attack_by_var) + ylab("Attack kill rate range")+ 
+        theme_bw() + xlab(ssd$attack_by_var) + ylab("Attack kill rate range") +
         ggtitle(paste0("Kill rate: ", setter_id,"(",team_name,")"))
     } else {
-        g <- ggplot(data = table_df %>% mutate(x_axis = as.factor(!!rlang::sym(ssd$attack_by_var)))) + 
-            ggplot2::geom_pointrange(aes_string(ymin = "qlow", ymax = "qup",y = "mean",  x = "x_axis"), 
-                                     position = ggplot2::position_dodge(1), linewidth = 1.5, size = 0.75) + 
+        g <- ggplot(data = table_df %>% mutate(x_axis = as.factor(!!rlang::sym(ssd$attack_by_var)))) +
+            ggplot2::geom_pointrange(aes(ymin = .data$qlow, ymax = .data$qup, y = .data$mean,  x = .data$x_axis),
+                                     position = ggplot2::position_dodge(1), linewidth = 1.5, size = 0.75) +
             ggplot2::scale_color_brewer(direction = -1)+ scale_y_continuous(labels = scales::percent) +
-           {if(ssd$setter_position_by_var %in% names(table_df)) facet_wrap(dplyr::sym(ssd$setter_position_by_var))}+
-            theme_bw() + xlab(ssd$attack_by_var) + ylab("Attack kill rate range") + 
-            ggtitle(paste0("Kill rate: ", setter_id," (",team_name,")"))
+           { if (ssd$setter_position_by_var %in% names(table_df)) facet_wrap(dplyr::sym(ssd$setter_position_by_var)) } +
+            theme_bw() + xlab(ssd$attack_by_var) + ylab("Attack kill rate range") +
+            ggtitle(paste0("Kill rate: ", setter_id," (", team_name, ")"))
     }
     g
 }
