@@ -2,11 +2,16 @@
 #'
 #' @param x : a datavolley object (as returned by [datavolley::dv_read()]), a list of datavolley objects, or the `plays` component of a datavolley object
 #' @param target_team string or function: team to report on. If this is a function, it should return `TRUE` when passed the target team name
-#' @param method string: "meta" (rely on player metadata), "SHM" (assume a setter-hitter-middle rotation order), "SMH" (setter-middle-hitter), or "data" (figure out positions from scouting data). Method "meta" is the default if a datavolley object or list of objects is provided
-#' @param fall_back logical: if TRUE and `method` is "meta" and x is a single datavolley object BUT player roles are not provided in the DataVolley file metadata section, fall back to method="data"
-#' @param setter_tip_codes character: vector of attack combination codes that correspond to setter tips
+#' @param method string: one of
+#' - "meta" - rely on player metadata, i.e. the team rosters
+#' - "SHM" - assume a setter-hitter-middle rotation order. When the setter is in position 1 the outside hitters are in 2 and 5, and middles in 3 and 6
+#' - "SMH"  - setter-middle-hitter rotation order. When the setter is in position 1 the middles are in 2 and 5, and outside hitters in 3 and 6
+#' - or "data" - try and identify player roles based on the ball touches that each player makes.
+#' Method "meta" is the default if a datavolley object or list of objects is provided. Note that "SHM" and "SMH" cannot identify liberos, because they do not appear in the point-by-point on-court lineups.
+#' @param fall_back logical: if `TRUE` and `method` is "meta" and x is a single datavolley object BUT player roles are not provided in the DataVolley file metadata section, fall back to method "data"
+#' @param setter_tip_codes character: vector of attack combination codes that correspond to setter tips. Only relevant if `method` is "data"
 #'
-#' @return A data.frame
+#' @return A data.frame with columns `player_id`, `role`, and `score` (the confidence in the role assignment)
 #'
 #' @examples
 #' x <- ovdata_example("mlafin_braslovce_nkbm", as = "parsed")
@@ -19,7 +24,8 @@ ov_infer_player_roles <- function(x, target_team, method, fall_back = TRUE, sett
         method <- if (("meta" %in% names(x)) || all(vapply(x, function(z) "meta" %in% names(z), FUN.VALUE = TRUE))) "meta" else "data"
     }
     assert_that(is.string(method))
-    method <- match.arg(tolower(method), c("meta", "data", "shm", "smh"))
+    method <- tolower(method)
+    method <- match.arg(method, c("meta", "data", "shm", "smh"))
     is_target_team <- if (is.character(target_team)) function(z) z %eq% target_team else target_team
     assert_that(is.function(is_target_team))
     was_single_dv <- FALSE
@@ -41,13 +47,44 @@ ov_infer_player_roles <- function(x, target_team, method, fall_back = TRUE, sett
         }
         m <- do.call(rbind, lapply(x, target_players_from_meta))
         if (nrow(m) < 1) stop("target_team does not appear to be present in the data")
-        roles <- dplyr::summarize(group_by(m, .data$player_id, .data$role), n = n(), role = .data$role[.data$n == max(.data$n)], score = max(.data$n)/sum(.data$n))
+        roles <- m %>% group_by(.data$player_id, .data$role) %>%
+            dplyr::summarize(n = n(), role = .data$role[.data$n == max(.data$n)], score = max(.data$n)/sum(.data$n)) %>%
+            dplyr::select(-"n")
         ## old dv meta uses "pass-hitter" instead of "outside"
         roles <- mutate(roles, role = case_when(.data$role == "pass-hitter" ~ "outside", TRUE ~ .data$role))
         if (was_single_dv && all(roles$role %in% c(NA, "", "libero")) && fall_back) {
             ## for a single match, with no roles entered in the metadata, infer roles from data
             return(ov_infer_player_roles(x, target_team, method = "data"))
         }
+    } else if (method %in% c("shm", "smh")) {
+        role_ord <- if (method == "shm") c("setter", "outside", "middle", "opposite", "outside", "middle") else c("setter", "middle", "outside", "opposite", "middle", "outside")
+        xs <- x %>% dplyr::filter(.data$skill == "Serve", is_target_team(.data$home_team) | is_target_team(.data$visiting_team)) ## start of each rall
+        roles <- bind_rows(lapply(1:6, function(sp) { ## iterate over setter positions
+            temp <- xs %>% dplyr::filter(is_target_team(.data$home_team), .data$home_setter_position == sp)
+            bind_rows(lapply(1:6, function(pos) {
+                ## the player in position pos will be role_ord[do_rot(pos, -(sp - 1))]
+                temp %>% dplyr::count(.data[[paste0("home_player_id", pos)]]) %>%
+                    mutate(role = role_ord[do_rot(pos, -(sp - 1))]) %>% dplyr::rename(player_id = paste0("home_player_id", pos))
+            }))
+        })) %>%
+            ## and same for visiting team
+            bind_rows(lapply(1:6, function(sp) {
+                temp <- xs %>% dplyr::filter(is_target_team(.data$visiting_team), .data$visiting_setter_position == sp)
+                bind_rows(lapply(1:6, function(pos) {
+                    ## the player in position pos will be role_ord[do_rot(pos, -(sp - 1))]
+                    temp %>% dplyr::count(.data[[paste0("visiting_player_id", pos)]]) %>%
+                        mutate(role = role_ord[do_rot(pos, -(sp - 1))]) %>% dplyr::rename(player_id = paste0("visiting_player_id", pos))
+                }))
+            })) %>%
+            group_by(.data$player_id, .data$role) %>% dplyr::summarize(n = sum(.data$n), .groups = "drop")
+        roles <- roles %>% group_by(.data$player_id) %>% mutate(N = sum(.data$n)) %>% dplyr::slice_max(order_by = .data$n) %>%
+            ## mutate(score = .data$n / .data$N) %>%
+            ungroup
+        ## instead of n / N as the score, calculate the lower bound of the confidence interval of that proportion
+        ## doing this will give a lower score on roles that are inferred from smaller numbers of samples
+        ## (in a semi-principled way, we are ignoring non-independence but it doesn't really matter that much)
+        roles$score <- sapply(seq_len(nrow(roles)), function(i) suppressWarnings(prop.test(roles$n[i], roles$N[i])$conf.int[1]))
+        roles <- roles %>% dplyr::select("player_id", "role", "score")
     } else {
         ## data method
         if (is.list(x) && all(vapply(x, function(z) "meta" %in% names(z), FUN.VALUE = TRUE))) {

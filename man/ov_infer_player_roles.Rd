@@ -17,14 +17,21 @@ ov_infer_player_roles(
 
 \item{target_team}{string or function: team to report on. If this is a function, it should return \code{TRUE} when passed the target team name}
 
-\item{method}{string: "meta" (rely on player metadata), "SHM" (assume a setter-hitter-middle rotation order), "SMH" (setter-middle-hitter), or "data" (figure out positions from scouting data). Method "meta" is the default if a datavolley object or list of objects is provided}
+\item{method}{string: one of
+\itemize{
+\item "meta" - rely on player metadata, i.e. the team rosters
+\item "SHM" - assume a setter-hitter-middle rotation order. When the setter is in position 1 the outside hitters are in 2 and 5, and middles in 3 and 6
+\item "SMH"  - setter-middle-hitter rotation order. When the setter is in position 1 the middles are in 2 and 5, and outside hitters in 3 and 6
+\item or "data" - try and identify player roles based on the ball touches that each player makes.
+Method "meta" is the default if a datavolley object or list of objects is provided. Note that "SHM" and "SMH" cannot identify liberos, because they do not appear in the point-by-point on-court lineups.
+}}
 
-\item{fall_back}{logical: if TRUE and \code{method} is "meta" and x is a single datavolley object BUT player roles are not provided in the DataVolley file metadata section, fall back to method="data"}
+\item{fall_back}{logical: if \code{TRUE} and \code{method} is "meta" and x is a single datavolley object BUT player roles are not provided in the DataVolley file metadata section, fall back to method "data"}
 
-\item{setter_tip_codes}{character: vector of attack combination codes that correspond to setter tips}
+\item{setter_tip_codes}{character: vector of attack combination codes that correspond to setter tips. Only relevant if \code{method} is "data"}
 }
 \value{
-A data.frame
+A data.frame with columns \code{player_id}, \code{role}, and \code{score} (the confidence in the role assignment)
 }
 \description{
 Infer the role of each player
