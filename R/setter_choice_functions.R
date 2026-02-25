@@ -448,7 +448,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
     
         gActual <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(dplyr::filter(attack_zones_actual, .data$team == xx & .data$setter == yy), aes(x = .data$x, y = .data$y - 0.5)) +
-                geom_segment(aes(xend = .data$x, yend = .data$y - 0.1, size = .data$rate, col = .data$type), arrow = arrow(length = unit(0.03, "npc"))) +
+                geom_segment(aes(xend = .data$x, yend = .data$y - 0.1, linewidth = .data$rate, col = .data$type), arrow = arrow(length = unit(0.03, "npc"))) +
                 geom_text(aes(y = .data$y - 0.6, label = .data$attack_code, col = .data$type), show.legend = FALSE) +
                 ggcourt(court = "lower", labels = "") +
                 facet_wrap(~rotation) +
@@ -458,7 +458,7 @@ ov_plot_distribution <- function(ssd, label_setters_by = "id", font_size = 11, t
     
         gSim <- purrr::map2(setter_team$team, setter_team$setter, function(xx, yy) {
             ggplot(dplyr::filter(attack_zones_sim, .data$team == xx & .data$setter == yy), aes(x = .data$x, y = .data$y - 0.5)) +
-                geom_segment(aes(xend = .data$x, yend = .data$y - 0.1,  size = .data$rate, col = .data$type), arrow = arrow(length = unit(0.03, "npc"))) +
+                geom_segment(aes(xend = .data$x, yend = .data$y - 0.1,  linewidth = .data$rate, col = .data$type), arrow = arrow(length = unit(0.03, "npc"))) +
                 geom_text(aes(y = .data$y - 0.6, label = .data$attack_choice, col = .data$type), show.legend = FALSE) +
                 ggcourt(court = "lower", labels = "") + scale_size(guide = "none") +
                 scale_fill_gradient2(name = "Attack rate") + facet_wrap(~rotation) +

@@ -18,7 +18,6 @@ most_common_value <- function(x, na.rm=FALSE) {
 mean_narm <- function(...) mean(..., na.rm = TRUE)
 sum_narm <- function(...) sum(..., na.rm = TRUE)
 
-
 mean_weighted <- function(x, wt, na.rm = TRUE) {
     if (na.rm) {
         idx <- !is.na(x) & !is.na(wt)
