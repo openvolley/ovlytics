@@ -9,7 +9,7 @@ ov_infer_player_roles(
   target_team,
   method,
   fall_back = TRUE,
-  setter_tip_codes = c("PP")
+  setter_tip_codes = c("PP", "PR", "P2")
 )
 }
 \arguments{
@@ -22,19 +22,22 @@ ov_infer_player_roles(
 \item "meta" - rely on player metadata, i.e. the team rosters
 \item "SHM" - assume a setter-hitter-middle rotation order. When the setter is in position 1 the outside hitters are in 2 and 5, and middles in 3 and 6
 \item "SMH"  - setter-middle-hitter rotation order. When the setter is in position 1 the middles are in 2 and 5, and outside hitters in 3 and 6
-\item or "data" - try and identify player roles based on the ball touches that each player makes.
+\item or "data" - try and identify player roles based on the ball touches that each player makes. Note that this assumes certain play characteristics: outsides hit pipes and in front row hit from the left except in P1 reception, opposites hit from the right (left in P1 reception), middles hit quick balls or slides or from zone 3
 Method "meta" is the default if a datavolley object or list of objects is provided. Note that "SHM" and "SMH" cannot identify liberos, because they do not appear in the point-by-point on-court lineups.
 }}
 
 \item{fall_back}{logical: if \code{TRUE} and \code{method} is "meta" and x is a single datavolley object BUT player roles are not provided in the DataVolley file metadata section, fall back to method "data"}
 
-\item{setter_tip_codes}{character: vector of attack combination codes that correspond to setter tips. Only relevant if \code{method} is "data"}
+\item{setter_tip_codes}{character: vector of attack combination codes that correspond to setter tips and other attacks that do not tend to be made from a consistent start zone. Only relevant if \code{method} is "data"}
 }
 \value{
-A data.frame with columns \code{player_id}, \code{role}, and \code{score} (the confidence in the role assignment)
+A data.frame with columns \code{player_id}, \code{role}, and \code{score} (the approximate confidence in the role assignment, in the range 0 to 1)
 }
 \description{
 Infer the role of each player
+}
+\details{
+The inference procedure assumes that each player plays the same role across the entire data set \code{x}. If \code{x} is drawn from multiple matches, and a player changes role from match to match, it will likely give misleading results for that player. In that case, it is probably better to run this inference on each match separately.
 }
 \examples{
 x <- ovdata_example("mlafin_braslovce_nkbm", as = "parsed")
